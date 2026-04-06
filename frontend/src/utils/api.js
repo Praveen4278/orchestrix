@@ -48,6 +48,12 @@ export const addNote = async (sessionId, paperId, content) => {
   return response.data;
 };
 
+// ── Chat ─────────────────────────────────────────────────────
+export const chatWithPapers = async (payload) => {
+  const response = await api.post('/chat', payload);
+  return response.data;
+};
+
 export const fetchNotes = async (sessionId) => {
   const response = await api.get(`/notes/${sessionId}`);
   return response.data.notes || [];

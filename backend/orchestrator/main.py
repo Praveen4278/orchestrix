@@ -22,7 +22,7 @@ from shared.models import (
     QueryRequest, OrchestratorResponse, AgentTrace,
     DiscoveryRequest, AnalysisRequest, SummaryRequest, CitationRequest,
     Paper, AnalysisResponse, SummaryResponse, CitationResponse,
-    Session,
+    Session, ChatRequest, ChatResponse
 )
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))
@@ -68,7 +68,11 @@ DEFAULT_SINGLE_URLS = {
     "analysis": os.getenv("ANALYSIS_AGENT_URL", "http://127.0.0.1:8002"),
     "summary": os.getenv("SUMMARY_AGENT_URL", "http://127.0.0.1:8003"),
     "citation": os.getenv("CITATION_AGENT_URL", "http://127.0.0.1:8004"),
+    "chat": os.getenv("CHAT_AGENT_URL", "http://127.0.0.1:8005"),
 }
+
+# In-memory session store (fallback for when MongoDB is unavailable)
+SESSION_CACHE: Dict[str, dict] = {}
 
 
 def get_agent_urls(request: QueryRequest) -> Dict[str, str]:
@@ -180,21 +184,232 @@ async def call_citation(
 
 # ─── Session Persistence ──────────────────────────────────────
 async def save_session(session_data: dict):
+    # Always update the in-memory cache
+    session_id = session_data.get("session_id")
+    if session_id:
+        # Merge if exists
+        if session_id in SESSION_CACHE:
+            SESSION_CACHE[session_id].update(session_data)
+        else:
+            SESSION_CACHE[session_id] = session_data
+
     if db is None:
         return
     try:
-        await db.sessions.insert_one(session_data)
+        # Use upsert to avoid duplicate keys in MongoDB if it's running
+        await db.sessions.update_one(
+            {"session_id": session_id},
+            {"$set": session_data},
+            upsert=True
+        )
     except Exception as e:
         print(f"[Orchestrator] Failed to save session: {e}")
 
 
 async def get_session_from_db(session_id: str) -> Optional[dict]:
+    # Check cache first (fastest)
+    if session_id in SESSION_CACHE:
+        return SESSION_CACHE[session_id]
+
     if db is None:
         return None
     return await db.sessions.find_one({"session_id": session_id}, {"_id": 0})
 
 
+import json
+from fastapi.responses import StreamingResponse
+
+def sse_event(data: dict) -> str:
+    return f"data: {json.dumps(data)}\n\n"
+
 # ─── Main Orchestration Logic ─────────────────────────────────
+@app.get("/query/stream")
+async def query_stream(
+    query: str,
+    max_results: int = 15,
+    execution_mode: str = "single",
+    generate_citations: bool = True,
+    eli5_mode: bool = False
+):
+    """
+    Streaming orchestration endpoint.
+    Yields progress events as agents complete their tasks.
+    """
+    async def event_generator():
+        t_global = time.time()
+        session_id = str(uuid.uuid4())
+        trace: List[AgentTrace] = []
+        
+        # Mock request for get_agent_urls
+        from shared.models import QueryRequest
+        request = QueryRequest(
+            query=query, 
+            max_results=max_results, 
+            execution_mode=execution_mode,
+            generate_citations=generate_citations,
+            eli5_mode=eli5_mode
+        )
+        urls = get_agent_urls(request)
+
+        yield sse_event({"type": "pipeline_start", "session_id": session_id, "query": query})
+
+        # ── Step 1: Discovery ──────────────────
+        yield sse_event({"type": "step_start", "step": "discovery", "message": "Discovering research papers..."})
+        trace.append(AgentTrace(agent="discovery", status="running"))
+        
+        papers = await call_discovery(urls["discovery"], query, max_results, trace)
+        trace = [t for t in trace if not (t.agent == "discovery" and t.status == "running")]
+        
+        if not papers:
+            papers = []
+            
+        yield sse_event({
+            "type": "step_done", 
+            "step": "discovery", 
+            "count": len(papers),
+            "message": f"Found {len(papers)} relevant papers",
+            "papers": [p.model_dump() for p in papers]
+        })
+
+        # ── Persist to MongoDB early to save discovery results ──────────────────
+        session_doc = {
+            "session_id": session_id,
+            "query": query,
+            "papers": [p.model_dump() for p in papers],
+            "trace": [t.model_dump() for t in trace],
+            "execution_mode": execution_mode,
+            "generate_citations": generate_citations,
+            "eli5_mode": eli5_mode,
+            "created_at": datetime.utcnow().isoformat(),
+            "status": "pending_selection"
+        }
+        await save_session(session_doc)
+
+        yield sse_event({"type": "awaiting_selection", "session_id": session_id})
+        return
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@app.get("/query/resume")
+async def resume_query(
+    session_id: str,
+    selected_paper_ids: str
+):
+    """
+    Resume the pipeline with only selected papers.
+    Used after the manual selection step.
+    """
+    async def event_generator():
+        t_global = time.time()
+        
+        # Parse selected_paper_ids from JSON string
+        try:
+            ids = json.loads(selected_paper_ids)
+        except Exception as e:
+            yield sse_event({"type": "error", "message": f"Invalid paper IDs: {e}"})
+            return
+
+        # Retrieve the session to get original papers and config
+        session = await get_session_from_db(session_id)
+        if not session:
+            yield sse_event({"type": "error", "message": "Session not found"})
+            return
+
+        query = session["query"]
+        all_papers = [Paper(**p) for p in session["papers"]]
+        # Filter papers based on selection
+        papers = [p for p in all_papers if p.id in ids]
+        
+        if not papers:
+            yield sse_event({"type": "error", "message": "No papers selected"})
+            return
+
+        # Prepare trace
+        trace = [AgentTrace(**t) for t in session.get("trace", [])]
+        execution_mode = session.get("execution_mode", "single")
+        generate_citations = session.get("generate_citations", True)
+        eli5_mode = session.get("eli5_mode", False)
+
+        # Mock request for get_agent_urls
+        from shared.models import QueryRequest
+        request = QueryRequest(
+            query=query, 
+            max_results=len(all_papers), 
+            execution_mode=execution_mode,
+            generate_citations=generate_citations,
+            eli5_mode=eli5_mode
+        )
+        urls = get_agent_urls(request)
+
+        yield sse_event({"type": "pipeline_resumed", "session_id": session_id})
+
+        # ── Step 2: Parallel Analysis + Summary ───────────────────
+        analysis: Optional[AnalysisResponse] = None
+        summaries: Optional[SummaryResponse] = None
+        citations: Optional[CitationResponse] = None
+
+        yield sse_event({"type": "step_start", "step": "analysis_summary", "message": f"Analyzing {len(papers)} selected papers..."})
+        
+        trace.append(AgentTrace(agent="analysis", status="parallel execution — starting"))
+        trace.append(AgentTrace(agent="summary", status="parallel execution — starting"))
+
+        analysis_task = call_analysis(urls["analysis"], papers, query, trace)
+        summary_task = call_summary(urls["summary"], papers, eli5_mode, trace)
+
+        try:
+            parallel_results = await asyncio.wait_for(
+                asyncio.gather(analysis_task, summary_task, return_exceptions=True),
+                timeout=120.0
+            )
+            a_result, s_result = parallel_results
+            
+            if isinstance(a_result, Exception):
+                trace.append(AgentTrace(agent="analysis", status="failed", error=str(a_result)[:120]))
+            else:
+                analysis = a_result
+            
+            if isinstance(s_result, Exception):
+                trace.append(AgentTrace(agent="summary", status="failed", error=str(s_result)[:120]))
+            else:
+                summaries = s_result
+
+        except asyncio.TimeoutError:
+            trace.append(AgentTrace(agent="orchestrator", status="timeout", error="Analysis/Summary took too long"))
+
+        yield sse_event({"type": "step_done", "step": "analysis_summary", "message": "Analysis and summaries complete"})
+
+        # ── Step 3: Citations ──────────────────────────────────
+        if generate_citations:
+            yield sse_event({"type": "step_start", "step": "citations", "message": "Compiling citations..."})
+            trace.append(AgentTrace(agent="citation", status="running"))
+            citations = await call_citation(urls["citation"], papers, trace)
+            trace = [t for t in trace if not (t.agent == "citation" and t.status == "running")]
+            yield sse_event({"type": "step_done", "step": "citations", "message": "Citations compiled"})
+
+        total_ms = round((time.time() - t_global) * 1000, 1)
+
+        # ── Final Response ─────────────────────────────────────────
+        final_data = {
+            "session_id": session_id,
+            "query": query,
+            "papers": [p.model_dump() for p in papers],
+            "analysis": analysis.model_dump() if analysis else None,
+            "summaries": summaries.model_dump() if summaries else None,
+            "citations": citations.model_dump() if citations else None,
+            "trace": [t.model_dump() for t in trace],
+            "execution_mode": execution_mode,
+            "total_duration_ms": total_ms,
+        }
+        
+        yield sse_event({"type": "pipeline_complete", "data": final_data})
+
+        # ── Update MongoDB ─────────────────────────────────────
+        session_doc = {**final_data, "updated_at": datetime.utcnow().isoformat()}
+        if db is not None:
+            await db.sessions.update_one({"session_id": session_id}, {"$set": session_doc})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 @app.post("/query", response_model=OrchestratorResponse)
 async def run_query(request: QueryRequest):
     """
@@ -235,39 +450,32 @@ async def run_query(request: QueryRequest):
 
         # Run Analysis and Summary in PARALLEL
         # Add a timeout for the entire parallel block to prevent hanging the UI
-        async def analysis_with_timeout():
-            try:
-                return await asyncio.wait_for(
-                    call_analysis(urls["analysis"], papers, request.query, trace),
-                    timeout=30.0
-                )
-            except asyncio.TimeoutError:
-                trace.append(AgentTrace(agent="analysis", status="timeout", error="Analysis timed out"))
-                return None
+        analysis_task = call_analysis(urls["analysis"], papers, request.query, trace)
+        summary_task = call_summary(urls["summary"], papers, request.eli5_mode, trace)
 
-        async def summary_with_timeout():
-            try:
-                return await asyncio.wait_for(
-                    call_summary(urls["summary"], papers, request.eli5_mode, trace),
-                    timeout=180.0
-                )
-            except asyncio.TimeoutError:
-                trace.append(AgentTrace(agent="summary", status="timeout", error="Summary timed out"))
-                return None
-
-        a_result, s_result = await asyncio.gather(
-            analysis_with_timeout(), summary_with_timeout(), return_exceptions=True
-        )
+        try:
+            parallel_results = await asyncio.wait_for(
+                asyncio.gather(analysis_task, summary_task, return_exceptions=True),
+                timeout=120.0 # Wait max 2 minutes for parallel agents
+            )
+            # Unpack results
+            a_result, s_result = parallel_results
+        except asyncio.TimeoutError:
+            print("[Orchestrator] Parallel agents timed out after 120s")
+            trace.append(AgentTrace(agent="orchestrator", status="timeout", error="Analysis/Summary took too long"))
+            a_result, s_result = None, None
 
         if isinstance(a_result, Exception):
             trace.append(AgentTrace(agent="analysis", status="failed", error=str(a_result)[:120]))
         elif a_result is not None:
             analysis = a_result
+            # Trace is updated inside call_analysis
 
         if isinstance(s_result, Exception):
             trace.append(AgentTrace(agent="summary", status="failed", error=str(s_result)[:120]))
         elif s_result is not None:
             summaries = s_result
+            # Trace is updated inside call_summary
 
         # ── Step 3: Citations ──────────────────────────────────
         if request.generate_citations and papers:
@@ -310,6 +518,31 @@ async def run_query(request: QueryRequest):
 
 
 # ─── Session History Endpoints ────────────────────────────────
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_papers(request: ChatRequest):
+    """Proxy to the Chat Agent."""
+    # 1. Resolve URL
+    # Resolve URL using a dummy request for get_agent_urls logic
+    from shared.models import QueryRequest
+    urls = get_agent_urls(QueryRequest(query="", max_results=0))
+    chat_url = urls.get("chat", "http://127.0.0.1:8005")
+
+    # 2. Get papers from session if not provided
+    if not request.papers:
+        session = await get_session_from_db(request.session_id)
+        if session:
+            request.papers = [Paper(**p) for p in session.get("papers", [])]
+
+    # 3. Call Chat Agent
+    try:
+        async with httpx.AsyncClient(timeout=130.0) as client:
+            resp = await client.post(f"{chat_url}/chat", json=request.model_dump())
+            resp.raise_for_status()
+            return ChatResponse(**resp.json())
+    except Exception as e:
+        print(f"[Orchestrator] Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/sessions")
 async def list_sessions(limit: int = 20):
     if db is None:

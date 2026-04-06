@@ -4,6 +4,7 @@ import { useApp } from '../store/AppContext';
 import { runQuery, checkAgentHealth } from '../utils/api';
 import { Search, Zap, Loader2, BookOpen, Layers, Lightbulb, PlayCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import FetchDashboard from '../components/FetchDashboard';
 
 const SUGGESTIONS = [
   { text: 'transformer architecture attention mechanism', icon: Lightbulb },
@@ -48,31 +49,28 @@ export default function SearchPage() {
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
     dispatch({ type: ACTIONS.CLEAR_SESSION });
 
-    try {
-      const payload = {
-        query: q,
-        max_results: maxResults,
-        generate_citations: citations,
-        eli5_mode: eli5,
-        execution_mode: state.executionMode,
-        agent_urls: state.executionMode === 'multi' ? state.agentUrls : undefined,
-      };
-
-      const result = await runQuery(payload);
-      dispatch({ type: ACTIONS.SET_SESSION, payload: result });
-      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-      navigate('/results');
-    } catch (err) {
-      const msg = err?.response?.data?.detail || err.message || 'Query failed';
-      setError(msg);
-      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
-    }
+    // Navigate to PipelinePage immediately
+    navigate('/pipeline', { 
+      state: { 
+        query: q, 
+        maxResults, 
+        eli5, 
+        citations 
+      } 
+    });
   };
 
   const isLoading = state.isLoading;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-16 sm:py-24">
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.7); }
+        }
+      `}</style>
       {/* Hero Section */}
       <div className="text-center mb-12">
         <motion.div 
@@ -207,6 +205,17 @@ export default function SearchPage() {
           )}
         </form>
       </motion.div>
+
+      {/* Fetch Dashboard */}
+      {isLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <FetchDashboard query={query.trim()} isLoading={isLoading} />
+        </motion.div>
+      )}
 
       {/* Suggested Queries */}
       <motion.div 

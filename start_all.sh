@@ -63,6 +63,12 @@ cd "$BACKEND_DIR/agents/citation"
 PYTHONPATH="$BACKEND_DIR" python3 -m uvicorn main:app --host 0.0.0.0 --port 8004 > "$LOG_DIR/citation.log" 2>&1 &
 echo "         PID: $!"
 
+# Chat Agent (port 8005)
+echo "  [8005] Chat Agent..."
+cd "$BACKEND_DIR/agents/chat"
+PYTHONPATH="$BACKEND_DIR" python3 -m uvicorn main:app --host 0.0.0.0 --port 8005 > "$LOG_DIR/chat.log" 2>&1 &
+echo "         PID: $!"
+
 # Wait for agents to start
 sleep 3
 

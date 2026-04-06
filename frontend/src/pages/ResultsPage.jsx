@@ -157,7 +157,13 @@ export default function ResultsPage() {
           >
             {activeTab === 'papers' && <PapersList papers={papers} />}
             {activeTab === 'analysis' && <AnalysisDashboard analysis={analysis} />}
-            {activeTab === 'summary' && <SummaryPanel summaries={summaries} />}
+            {activeTab === 'summary' && (
+              <SummaryPanel 
+                summaries={session.summaries} 
+                sessionId={session.session_id}
+                papers={session.papers}
+              />
+            )}
             {activeTab === 'citations' && <CitationsPanel citations={citations} />}
           </motion.div>
         </AnimatePresence>

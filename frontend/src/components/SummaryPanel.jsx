@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   GitMerge, SearchX, Lightbulb, Zap, Map, FileText, 
-  ChevronDown, ChevronUp, BrainCircuit, ShieldAlert, Sparkles 
+  ChevronDown, ChevronUp, BrainCircuit, ShieldAlert, Sparkles,
+  MessageSquare
 } from 'lucide-react';
+import PaperChatbot from './PaperChatbot';
 
 function SynthesisPanel({ synthesis }) {
   if (!synthesis) return null;
@@ -182,7 +184,7 @@ function IndividualSummaries({ summaries = [] }) {
   );
 }
 
-export default function SummaryPanel({ summaries }) {
+export default function SummaryPanel({ summaries, sessionId, papers }) {
   const [activeTab, setActiveTab] = useState('synthesis');
   
   if (!summaries) {
@@ -217,15 +219,26 @@ export default function SummaryPanel({ summaries }) {
           >
             <FileText size={16} /> Per-Paper Breakdowns
           </button>
+          <button 
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'chat' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare size={16} /> Research Chat
+          </button>
         </div>
       )}
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-        {(!hasSynthesis || activeTab === 'individual') && hasIndividual && (
+        {activeTab === 'individual' && hasIndividual && (
           <IndividualSummaries summaries={summaries.individual_summaries} />
         )}
-        {hasSynthesis && (!hasIndividual || activeTab === 'synthesis') && (
+        {activeTab === 'synthesis' && hasSynthesis && (
           <SynthesisPanel synthesis={summaries.synthesis} />
+        )}
+        {activeTab === 'chat' && (
+          <PaperChatbot sessionId={sessionId} papers={papers} />
         )}
       </motion.div>
     </div>

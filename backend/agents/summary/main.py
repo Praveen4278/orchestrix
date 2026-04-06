@@ -194,13 +194,9 @@ async def synthesize_papers(papers: List[Paper]) -> SynthesisResult:
     try:
         content = await get_llm_response(prompt, temperature=0.4, max_tokens=1500)
         data = robust_json_load(content)
-        contradictions = [
-            {k: ", ".join(v) if isinstance(v, list) else v for k, v in c.items()}
-            for c in data.get("contradictions", [])
-        ]
         return SynthesisResult(
             common_themes=data.get("common_themes", []),
-            contradictions=contradictions,
+            contradictions=data.get("contradictions", []),
             research_gaps=data.get("research_gaps", []),
             research_roadmap=data.get("research_roadmap", []),
             future_trends=data.get("future_trends", []),
@@ -243,26 +239,35 @@ async def summarize(request: SummaryRequest):
 
     # Summarize all papers + synthesize
     # If using local LLM, run sequentially to avoid resource contention
-    # Limit to first 1 paper for Ollama (very slow), 8 for OpenAI
-    limit = 1 if LLM_PROVIDER == "ollama" else 8
-    print(f"[Summary] LLM_PROVIDER={LLM_PROVIDER}, limit={limit}")
+    # Increased limit to 5 for Ollama, 15 for OpenAI
+    limit = 5 if LLM_PROVIDER == "ollama" else 15
     papers_to_summarize = papers[:limit]
     
     individual_summaries = []
     
     if LLM_PROVIDER == "ollama":
-        print(f"[Summary] Running {len(papers_to_summarize)} summaries sequentially for Ollama...")
+        print(f"[Summary] Running up to {len(papers_to_summarize)} summaries sequentially for Ollama...")
         for p in papers_to_summarize:
             try:
                 # Add a smaller timeout per paper to keep things moving
-                summary = await asyncio.wait_for(summarize_single_paper(p, request.eli5_mode), timeout=120.0)
+                summary = await asyncio.wait_for(summarize_single_paper(p, request.eli5_mode), timeout=60.0)
                 individual_summaries.append(summary)
             except asyncio.TimeoutError:
                 print(f"[Summary] Timeout summarizing paper {p.id}")
                 individual_summaries.append(SinglePaperSummary(
                     paper_id=p.id,
                     title=p.title,
-                    summary="Summary timed out (Ollama is too slow).",
+                    summary="Summary timed out (Ollama is currently under heavy load).",
+                    key_contributions=[],
+                    methodology="N/A",
+                    limitations=[]
+                ))
+            except Exception as e:
+                print(f"[Summary] Error summarizing paper {p.id}: {e}")
+                individual_summaries.append(SinglePaperSummary(
+                    paper_id=p.id,
+                    title=p.title,
+                    summary=f"Summary failed: {str(e)[:100]}",
                     key_contributions=[],
                     methodology="N/A",
                     limitations=[]

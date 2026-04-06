@@ -165,8 +165,21 @@ class Session(BaseModel):
     created_at: str
 
 
-class Note(BaseModel):
-    session_id: str
-    paper_id: str
+# ─── Chat Agent Models ──────────────────────────────────────────
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
     content: str
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    attachments: Optional[List[Dict[str, Any]]] = None
+
+class ChatRequest(BaseModel):
+    session_id: str
+    query: str
+    history: List[ChatMessage] = []
+    papers: List[Paper] = []
+    attachments: Optional[List[Dict[str, Any]]] = None
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: List[Dict[str, str]] = [] # paper_id -> title/link
+    history: List[ChatMessage]
