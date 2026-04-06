@@ -1,178 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../store/AppContext';
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'var(--bg)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '2rem',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  grid: {
-    position: 'absolute', inset: 0,
-    backgroundImage: `
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px)
-    `,
-    backgroundSize: '60px 60px',
-    opacity: 0.4,
-  },
-  glow: {
-    position: 'absolute',
-    width: '600px', height: '600px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)',
-    top: '50%', left: '50%',
-    transform: 'translate(-50%, -50%)',
-    pointerEvents: 'none',
-  },
-  card: {
-    position: 'relative', zIndex: 1,
-    background: 'var(--bg2)',
-    border: '1px solid var(--border2)',
-    borderRadius: '16px',
-    padding: '3rem',
-    maxWidth: '680px',
-    width: '100%',
-    textAlign: 'center',
-  },
-  badge: {
-    display: 'inline-block',
-    background: 'var(--accent3)',
-    border: '1px solid var(--accent2)',
-    color: 'var(--accent)',
-    fontFamily: 'var(--mono)',
-    fontSize: '0.65rem',
-    letterSpacing: '0.15em',
-    padding: '4px 12px',
-    borderRadius: '999px',
-    marginBottom: '1.5rem',
-    textTransform: 'uppercase',
-  },
-  logo: {
-    fontFamily: 'var(--mono)',
-    fontSize: '2.8rem',
-    fontWeight: 700,
-    color: 'var(--text)',
-    letterSpacing: '-0.02em',
-    marginBottom: '0.5rem',
-  },
-  logoAccent: { color: 'var(--accent)' },
-  tagline: {
-    color: 'var(--text2)',
-    fontSize: '1rem',
-    marginBottom: '2.5rem',
-    lineHeight: 1.6,
-  },
-  sectionTitle: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.7rem',
-    letterSpacing: '0.2em',
-    color: 'var(--text3)',
-    textTransform: 'uppercase',
-    marginBottom: '1.25rem',
-  },
-  modeGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '1rem',
-    marginBottom: '2rem',
-  },
-  modeBtn: (active, hovered) => ({
-    background: active ? 'rgba(0,212,255,0.08)' : hovered ? 'var(--bg3)' : 'var(--bg)',
-    border: `1px solid ${active ? 'var(--accent)' : hovered ? 'var(--border2)' : 'var(--border)'}`,
-    borderRadius: '12px',
-    padding: '1.5rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    textAlign: 'left',
-    color: 'var(--text)',
-  }),
-  modeBtnIcon: {
-    fontSize: '1.8rem',
-    marginBottom: '0.75rem',
-    display: 'block',
-  },
-  modeBtnTitle: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.85rem',
-    fontWeight: 700,
-    marginBottom: '0.4rem',
-    color: 'var(--accent)',
-  },
-  modeBtnDesc: {
-    fontSize: '0.78rem',
-    color: 'var(--text2)',
-    lineHeight: 1.5,
-  },
-  multiConfig: {
-    background: 'var(--bg3)',
-    border: '1px solid var(--border)',
-    borderRadius: '10px',
-    padding: '1.25rem',
-    marginBottom: '1.5rem',
-    textAlign: 'left',
-  },
-  configTitle: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.65rem',
-    letterSpacing: '0.15em',
-    color: 'var(--accent)',
-    textTransform: 'uppercase',
-    marginBottom: '1rem',
-  },
-  inputRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    marginBottom: '0.5rem',
-  },
-  inputLabel: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.7rem',
-    color: 'var(--text2)',
-    width: '80px',
-    flexShrink: 0,
-  },
-  input: {
-    flex: 1,
-    background: 'var(--bg2)',
-    border: '1px solid var(--border2)',
-    borderRadius: '6px',
-    padding: '6px 10px',
-    color: 'var(--text)',
-    fontSize: '0.78rem',
-    fontFamily: 'var(--mono)',
-    outline: 'none',
-  },
-  launchBtn: (disabled) => ({
-    width: '100%',
-    background: disabled ? 'var(--bg3)' : 'var(--accent)',
-    color: disabled ? 'var(--text3)' : 'var(--bg)',
-    border: 'none',
-    borderRadius: '10px',
-    padding: '1rem',
-    fontFamily: 'var(--mono)',
-    fontSize: '0.9rem',
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s',
-    textTransform: 'uppercase',
-  }),
-};
-
-const AGENT_NAMES = ['discovery', 'analysis', 'summary', 'citation'];
+import { motion, AnimatePresence } from 'framer-motion';
+import { Laptop, Network, Zap, ArrowRight, Settings2, Globe } from 'lucide-react';
 
 export default function ModeSelector() {
   const { dispatch, ACTIONS } = useApp();
-  const [selectedMode, setSelectedMode] = useState(null);
-  const [hoveredMode, setHoveredMode] = useState(null);
+  const [selectedMode, setSelectedMode] = useState('single');
   const [agentUrls, setAgentUrls] = useState({
     discovery: 'http://127.0.0.1:8001',
     analysis: 'http://127.0.0.1:8002',
@@ -189,69 +22,148 @@ export default function ModeSelector() {
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.grid} />
-      <div style={styles.glow} />
-      <div style={styles.card}>
-        <div style={styles.badge}>Distributed AI Research Platform</div>
-        <div style={styles.logo}>
-          Orche<span style={styles.logoAccent}>strix</span>
-        </div>
-        <p style={styles.tagline}>
-          Multi-agent research intelligence.<br />
-          Discover, analyze, summarize, and cite — at scale.
-        </p>
-
-        <div style={styles.sectionTitle}>Select Execution Mode</div>
-        <div style={styles.modeGrid}>
-          {['single', 'multi'].map(mode => (
-            <button
-              key={mode}
-              style={styles.modeBtn(selectedMode === mode, hoveredMode === mode)}
-              onClick={() => setSelectedMode(mode)}
-              onMouseEnter={() => setHoveredMode(mode)}
-              onMouseLeave={() => setHoveredMode(null)}
-            >
-              <span style={styles.modeBtnIcon}>
-                {mode === 'single' ? '🖥️' : '🌐'}
-              </span>
-              <div style={styles.modeBtnTitle}>
-                {mode === 'single' ? 'Single Laptop Mode' : 'Multi Laptop Mode'}
-              </div>
-              <div style={styles.modeBtnDesc}>
-                {mode === 'single'
-                  ? 'All agents run locally on localhost. Perfect for demos and offline use.'
-                  : 'Each agent runs on a separate machine. Fully distributed execution across your network.'}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {selectedMode === 'multi' && (
-          <div style={styles.multiConfig}>
-            <div style={styles.configTitle}>⚙️ Configure Agent IP Addresses</div>
-            {AGENT_NAMES.map(name => (
-              <div key={name} style={styles.inputRow}>
-                <span style={styles.inputLabel}>{name}</span>
-                <input
-                  style={styles.input}
-                  value={agentUrls[name]}
-                  onChange={e => setAgentUrls(prev => ({ ...prev, [name]: e.target.value }))}
-                  placeholder={`http://127.0.0.1:800${AGENT_NAMES.indexOf(name) + 1}`}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        <button
-          style={styles.launchBtn(!selectedMode)}
-          onClick={handleLaunch}
-          disabled={!selectedMode}
-        >
-          {selectedMode ? `Launch in ${selectedMode === 'single' ? 'Single Laptop' : 'Multi Laptop'} Mode →` : 'Select a mode to continue'}
-        </button>
+    <div className="min-h-screen bg-light flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 opacity-[0.03]" 
+          style={{ 
+            backgroundImage: 'radial-gradient(circle at 2px 2px, #2b2d42 1px, transparent 0)',
+            backgroundSize: '40px 40px' 
+          }} 
+        />
       </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl shadow-primary/5 border border-slate-100 p-8 md:p-12 relative z-10"
+      >
+        {/* Header */}
+        <div className="text-center mb-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent/10 text-accent rounded-full text-[10px] font-bold tracking-[0.2em] uppercase mb-6 border border-accent/20"
+          >
+            <Zap size={14} className="fill-accent/20" />
+            Distributed AI Research Platform
+          </motion.div>
+          
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary mb-3 tracking-tight">
+            Orche<span className="text-accent">strix</span>
+          </h1>
+          <p className="text-secondary font-medium max-w-md mx-auto">
+            Select your execution environment to begin high-speed autonomous research orchestration.
+          </p>
+        </div>
+
+        {/* Mode Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <button
+            onClick={() => setSelectedMode('single')}
+            className={`group relative p-6 rounded-3xl border-2 transition-all text-left overflow-hidden ${
+              selectedMode === 'single' 
+                ? 'border-accent bg-accent/[0.02] shadow-lg shadow-accent/5' 
+                : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
+              selectedMode === 'single' ? 'bg-accent text-white' : 'bg-white text-slate-400 group-hover:text-primary shadow-sm'
+            }`}>
+              <Laptop size={24} />
+            </div>
+            <h3 className={`font-bold text-lg mb-1 transition-colors ${selectedMode === 'single' ? 'text-primary' : 'text-slate-600'}`}>
+              Single Machine
+            </h3>
+            <p className="text-xs text-secondary leading-relaxed font-medium">
+              Run all agents locally on your workstation. Perfect for individual research.
+            </p>
+            {selectedMode === 'single' && (
+              <motion.div layoutId="mode-check" className="absolute top-4 right-4 text-accent">
+                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              </motion.div>
+            )}
+          </button>
+
+          <button
+            onClick={() => setSelectedMode('multi')}
+            className={`group relative p-6 rounded-3xl border-2 transition-all text-left overflow-hidden ${
+              selectedMode === 'multi' 
+                ? 'border-accent bg-accent/[0.02] shadow-lg shadow-accent/5' 
+                : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
+              selectedMode === 'multi' ? 'bg-accent text-white' : 'bg-white text-slate-400 group-hover:text-primary shadow-sm'
+            }`}>
+              <Globe size={24} />
+            </div>
+            <h3 className={`font-bold text-lg mb-1 transition-colors ${selectedMode === 'multi' ? 'text-primary' : 'text-slate-600'}`}>
+              Distributed Cluster
+            </h3>
+            <p className="text-xs text-secondary leading-relaxed font-medium">
+              Distribute agents across multiple nodes for high-scale processing.
+            </p>
+            {selectedMode === 'multi' && (
+              <motion.div layoutId="mode-check" className="absolute top-4 right-4 text-accent">
+                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              </motion.div>
+            )}
+          </button>
+        </div>
+
+        {/* Configuration for Multi-Mode */}
+        <AnimatePresence>
+          {selectedMode === 'multi' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 mb-8 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Settings2 size={14} className="text-accent" />
+                  <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Agent Node Configuration</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.keys(agentUrls).map((agent) => (
+                    <div key={agent} className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+                        {agent} endpoint
+                      </label>
+                      <input
+                        type="text"
+                        value={agentUrls[agent]}
+                        onChange={(e) => setAgentUrls(prev => ({ ...prev, [agent]: e.target.value }))}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-primary outline-none focus:border-accent transition-all"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Launch Button */}
+        <button
+          onClick={handleLaunch}
+          className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/10 transition-all flex items-center justify-center gap-3 group active:scale-[0.98]"
+        >
+          <span className="uppercase tracking-widest text-sm">Initialize Intelligence Engine</span>
+          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+        </button>
+        
+        <div className="mt-6 text-center">
+          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+            Session data encrypted & processed locally
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }
