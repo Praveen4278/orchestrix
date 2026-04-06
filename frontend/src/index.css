@@ -2,12 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary: #2b2d42;
+  --secondary: #8d99ae;
+  --accent: #ef233c;
+  --light: #edf2f4;
+  --white: #ffffff;
+}
+
 @layer base {
   body {
     @apply bg-light text-primary font-sans antialiased;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display text-primary;
+    @apply text-primary font-bold;
   }
 }

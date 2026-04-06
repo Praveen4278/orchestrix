@@ -1,0 +1,289 @@
+
+> orchestrix-frontend@1.0.0 start
+> react-scripts start
+
+(node:65717) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:65717) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:65717) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled successfully!
+
+You can now view orchestrix-frontend in the browser.
+
+  Local:            http://localhost:3000
+  On Your Network:  http://10.95.90.10:3000
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Failed to compile.
+
+Error: ENOENT: no such file or directory, open '/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/react-force-graph/dist/react-force-graph.mjs'
+LOG from webpack.FileSystemInfo
+<w> Managed item /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/react-force-graph isn't a directory or doesn't contain a package.json (see snapshot.managedPaths option)
++ 8 hidden lines
+
+ERROR in ./node_modules/react-force-graph/dist/react-force-graph.mjs
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/react-force-graph/dist/react-force-graph.mjs'
+
+webpack compiled with 1 error
+Compiling...
+Failed to compile.
+
+Error: ENOENT: no such file or directory, open '/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/react-force-graph/dist/react-force-graph.mjs'
+ERROR in ./node_modules/react-force-graph/dist/react-force-graph.mjs
+Module build failed (from ./node_modules/source-map-loader/dist/cjs.js):
+Error: ENOENT: no such file or directory, open '/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/react-force-graph/dist/react-force-graph.mjs'
+
+webpack compiled with 1 error
+Compiling...
+Failed to compile.
+
+Attempted import error: 'ForceGraph2D' is not exported from 'react-force-graph-2d' (imported as 'ForceGraph2D').
+ERROR in ./src/components/NeuralRelationshipGraph.jsx 155:35-47
+export 'ForceGraph2D' (imported as 'ForceGraph2D') was not found in 'react-force-graph-2d' (possible exports: default)
+
+webpack compiled with 1 error
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/components/SummaryPanel.jsx
+Syntax error: Identifier 'hasSynthesis' has already been declared. (204:8) (204:8)
+ERROR in ./src/components/SummaryPanel.jsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /Users/praveenraj/Downloads/orchestrix/frontend/src/components/SummaryPanel.jsx: Identifier 'hasSynthesis' has already been declared. (204:8)
+
+  202 |   }
+  203 |
+> 204 |   const hasSynthesis = !!summaries.synthesis;
+      |         ^
+  205 |   const hasIndividual = summaries.individual_summaries?.length > 0;
+  206 |
+  207 |   const handleNodeClick = (paper) => {
+    at constructor (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:365:19)
+    at FlowParserMixin.raise (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:6599:19)
+    at FlowScopeHandler.checkRedeclarationInScope (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:1619:19)
+    at FlowScopeHandler.declareName (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:1585:12)
+    at FlowScopeHandler.declareName (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:1686:11)
+    at FlowParserMixin.declareNameFromIdentifier (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:7567:16)
+    at FlowParserMixin.checkIdentifier (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:7563:12)
+    at FlowParserMixin.checkLVal (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:7500:12)
+    at FlowParserMixin.parseVarId (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13412:10)
+    at FlowParserMixin.parseVarId (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3474:11)
+    at FlowParserMixin.parseVar (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13383:12)
+    at FlowParserMixin.parseVarStatement (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13230:10)
+    at FlowParserMixin.parseStatementContent (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12851:23)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12767:17)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2918:24)
+    at FlowParserMixin.parseStatementListItem (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12747:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13316:61)
+    at FlowParserMixin.parseBlockBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13309:10)
+    at FlowParserMixin.parseBlock (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13297:10)
+    at FlowParserMixin.parseFunctionBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12100:24)
+    at FlowParserMixin.parseFunctionBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2895:11)
+    at FlowParserMixin.parseFunctionBodyAndFinish (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12086:10)
+    at FlowParserMixin.parseFunctionBodyAndFinish (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2903:18)
+    at /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13445:12
+    at FlowParserMixin.withSmartMixTopicForbiddingContext (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12403:14)
+    at FlowParserMixin.parseFunction (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13444:10)
+    at FlowParserMixin.parseExportDefaultExpression (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13907:19)
+    at FlowParserMixin.parseExportDefaultExpression (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2966:18)
+    at FlowParserMixin.parseExport (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13828:25)
+    at FlowParserMixin.parseStatementContent (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12878:27)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12767:17)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2918:24)
+    at FlowParserMixin.parseModuleItem (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12744:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13316:36)
+    at FlowParserMixin.parseBlockBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13309:10)
+    at FlowParserMixin.parseProgram (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12622:10)
+    at FlowParserMixin.parseTopLevel (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12612:25)
+    at FlowParserMixin.parseTopLevel (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3685:28)
+    at FlowParserMixin.parse (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:14488:25)
+    at parse (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:14522:38)
+    at parser (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/core/lib/parser/index.js:41:34)
+    at parser.next (<anonymous>)
+    at normalizeFile (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/core/lib/transformation/normalize-file.js:64:37)
+    at normalizeFile.next (<anonymous>)
+    at run (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/core/lib/transformation/index.js:22:50)
+    at run.next (<anonymous>)
+    at transform (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/core/lib/transform.js:22:33)
+    at transform.next (<anonymous>)
+    at step (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/gensync/index.js:261:32)
+    at /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/gensync/index.js:273:13
+
+ERROR in [eslint] 
+src/components/SummaryPanel.jsx
+  Line 204:8:  Parsing error: Identifier 'hasSynthesis' has already been declared. (204:8)
+
+webpack compiled with 2 errors
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Failed to compile.
+
+[eslint] 
+src/components/NeuralRelationshipGraph.jsx
+Syntax error: Unterminated JSX contents. (346:10) (346:10)
+ERROR in ./src/components/NeuralRelationshipGraph.jsx
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /Users/praveenraj/Downloads/orchestrix/frontend/src/components/NeuralRelationshipGraph.jsx: Unterminated JSX contents. (346:10)
+
+  344 |         onEngineStop={() => !selectedNode && fgRef.current.zoomToFit(600, 80)}
+  345 |       />
+> 346 |     </div>
+      |           ^
+  347 |   );
+  348 | }
+  349 |
+    at constructor (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:365:19)
+    at FlowParserMixin.raise (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:6599:19)
+    at FlowParserMixin.jsxReadToken (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4448:20)
+    at FlowParserMixin.getTokenFromCode (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4774:12)
+    at FlowParserMixin.getTokenFromCode (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3197:13)
+    at FlowParserMixin.nextToken (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:5782:10)
+    at FlowParserMixin.next (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:5692:10)
+    at FlowParserMixin.eat (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:5696:12)
+    at FlowParserMixin.expect (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:6898:15)
+    at FlowParserMixin.jsxParseClosingElementAt (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4680:10)
+    at FlowParserMixin.jsxParseElementAt (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4695:37)
+    at FlowParserMixin.jsxParseElementAt (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4698:32)
+    at FlowParserMixin.jsxParseElement (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4749:17)
+    at FlowParserMixin.parseExprAtom (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4759:19)
+    at FlowParserMixin.parseExprSubscripts (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11081:23)
+    at FlowParserMixin.parseUpdate (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11066:21)
+    at FlowParserMixin.parseMaybeUnary (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11046:23)
+    at FlowParserMixin.parseMaybeUnaryOrPrivate (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10899:61)
+    at FlowParserMixin.parseExprOps (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10904:23)
+    at FlowParserMixin.parseMaybeConditional (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10881:23)
+    at FlowParserMixin.parseMaybeAssign (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10831:21)
+    at /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3498:39
+    at FlowParserMixin.tryParse (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:6907:20)
+    at FlowParserMixin.parseMaybeAssign (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3498:18)
+    at /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10800:39
+    at FlowParserMixin.allowInAnd (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12426:12)
+    at FlowParserMixin.parseMaybeAssignAllowIn (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10800:17)
+    at FlowParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12493:17)
+    at FlowParserMixin.parseParenAndDistinguishExpression (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11675:28)
+    at FlowParserMixin.parseParenAndDistinguishExpression (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3591:18)
+    at FlowParserMixin.parseExprAtom (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11331:23)
+    at FlowParserMixin.parseExprAtom (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:4764:20)
+    at FlowParserMixin.parseExprSubscripts (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11081:23)
+    at FlowParserMixin.parseUpdate (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11066:21)
+    at FlowParserMixin.parseMaybeUnary (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:11046:23)
+    at FlowParserMixin.parseMaybeUnaryOrPrivate (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10899:61)
+    at FlowParserMixin.parseExprOps (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10904:23)
+    at FlowParserMixin.parseMaybeConditional (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10881:23)
+    at FlowParserMixin.parseMaybeAssign (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10831:21)
+    at FlowParserMixin.parseMaybeAssign (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:3549:18)
+    at FlowParserMixin.parseExpressionBase (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10784:23)
+    at /Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10780:39
+    at FlowParserMixin.allowInAnd (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12421:16)
+    at FlowParserMixin.parseExpression (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:10780:17)
+    at FlowParserMixin.parseReturnStatement (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13142:28)
+    at FlowParserMixin.parseStatementContent (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12798:21)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12767:17)
+    at FlowParserMixin.parseStatementLike (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:2918:24)
+    at FlowParserMixin.parseStatementListItem (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:12747:17)
+    at FlowParserMixin.parseBlockOrModuleBlockBody (/Users/praveenraj/Downloads/orchestrix/frontend/node_modules/@babel/parser/lib/index.js:13316:61)
+
+ERROR in [eslint] 
+src/components/NeuralRelationshipGraph.jsx
+  Line 346:10:  Parsing error: Unterminated JSX contents. (346:10)
+
+webpack compiled with 2 errors
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully

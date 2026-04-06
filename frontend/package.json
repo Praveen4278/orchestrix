@@ -5,11 +5,13 @@
   "dependencies": {
     "autoprefixer": "^10.4.27",
     "axios": "^1.6.7",
+    "d3-force": "^3.0.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "postcss": "^8.5.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-force-graph-2d": "^1.29.1",
     "react-router-dom": "^6.22.0",
     "react-scripts": "5.0.1",
     "recharts": "^2.12.0",

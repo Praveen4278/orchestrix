@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   GitMerge, SearchX, Lightbulb, Zap, Map, FileText, 
   ChevronDown, ChevronUp, BrainCircuit, ShieldAlert, Sparkles,
-  MessageSquare
+  MessageSquare, Scale, Headphones
 } from 'lucide-react';
 import PaperChatbot from './PaperChatbot';
+import NeuralRelationshipGraph from './NeuralRelationshipGraph';
+import ContradictionPanel from './ContradictionPanel';
+import AudioPlayer from './AudioPlayer';
+import SynthesisDashboard from './SynthesisDashboard';
+import { fetchContradictions, fetchAudioBriefing, fetchSynthesis } from '../utils/api';
+
+import { useApp } from '../store/AppContext';
 
 function SynthesisPanel({ synthesis }) {
   if (!synthesis) return null;
@@ -185,7 +192,72 @@ function IndividualSummaries({ summaries = [] }) {
 }
 
 export default function SummaryPanel({ summaries, sessionId, papers }) {
-  const [activeTab, setActiveTab] = useState('synthesis');
+  const { state } = useApp();
+  const hasSynthesis = !!summaries?.synthesis;
+  const hasIndividual = summaries?.individual_summaries?.length > 0;
+  
+  const [activeTab, setActiveTab] = useState(hasSynthesis ? 'synthesis' : (hasIndividual ? 'individual' : 'chat'));
+  const [interviewPaper, setInterviewPaper] = useState(null);
+  const [contradictionData, setContradictionData] = useState(null);
+  const [loadingContradictions, setLoadingContradictions] = useState(false);
+  const [audioBriefing, setAudioBriefing] = useState(null);
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [synthesizedPaper, setSynthesizedPaper] = useState(null);
+  const [pdfBase64, setPdfBase64] = useState(null);
+  const [loadingSynthesis, setLoadingSynthesis] = useState(false);
+
+  useEffect(() => {
+    // Check if session already has a synthesized paper in DB
+    if (state.currentSession?.synthesized_papers?.length > 0 && !synthesizedPaper) {
+      setSynthesizedPaper(state.currentSession.synthesized_papers[0]);
+    }
+  }, [state.currentSession, synthesizedPaper]);
+
+  useEffect(() => {
+    if (activeTab === 'contradictions' && !contradictionData && papers?.length > 1) {
+      const loadContradictions = async () => {
+        setLoadingContradictions(true);
+        try {
+          const data = await fetchContradictions(papers, sessionId);
+          setContradictionData(data);
+        } catch (err) {
+          console.error("Failed to load contradictions:", err);
+        } finally {
+          setLoadingContradictions(false);
+        }
+      };
+      loadContradictions();
+    }
+  }, [activeTab, papers, contradictionData, sessionId]);
+
+  const handleGenerateAudio = async () => {
+    if (!papers || papers.length === 0) return;
+    setLoadingAudio(true);
+    try {
+      const query = state.currentSession?.query || "Research Papers";
+      const data = await fetchAudioBriefing(papers, query, sessionId);
+      setAudioBriefing(data);
+    } catch (err) {
+      console.error("Failed to load audio briefing:", err);
+    } finally {
+      setLoadingAudio(false);
+    }
+  };
+
+  const handleGenerateSynthesis = async () => {
+    if (!papers || papers.length === 0) return;
+    setLoadingSynthesis(true);
+    try {
+      const query = state.currentSession?.query || "Research Papers";
+      const data = await fetchSynthesis(papers, query, sessionId);
+      setSynthesizedPaper(data.paper);
+      setPdfBase64(data.pdf_base64);
+    } catch (err) {
+      console.error("Failed to load paper synthesis:", err);
+    } finally {
+      setLoadingSynthesis(false);
+    }
+  };
   
   if (!summaries) {
     return (
@@ -196,29 +268,35 @@ export default function SummaryPanel({ summaries, sessionId, papers }) {
     );
   }
 
-  const hasSynthesis = !!summaries.synthesis;
-  const hasIndividual = summaries.individual_summaries?.length > 0;
+  const handleNodeClick = (paper) => {
+    setInterviewPaper(paper);
+    setActiveTab('chat');
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
-      {hasSynthesis && hasIndividual && (
+      {(hasSynthesis || hasIndividual) && (
         <div className="flex bg-slate-100 p-1 rounded-xl w-fit mb-6 shadow-inner border border-slate-200/50">
-          <button 
-            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === 'synthesis' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
-            }`}
-            onClick={() => setActiveTab('synthesis')}
-          >
-            <BrainCircuit size={16} /> Global Synthesis
-          </button>
-          <button 
-            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === 'individual' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
-            }`}
-            onClick={() => setActiveTab('individual')}
-          >
-            <FileText size={16} /> Per-Paper Breakdowns
-          </button>
+          {hasSynthesis && (
+            <button 
+              className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === 'synthesis' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+              }`}
+              onClick={() => setActiveTab('synthesis')}
+            >
+              <BrainCircuit size={16} /> Global Synthesis
+            </button>
+          )}
+          {hasIndividual && (
+            <button 
+              className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === 'individual' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+              }`}
+              onClick={() => setActiveTab('individual')}
+            >
+              <FileText size={16} /> Per-Paper Breakdowns
+            </button>
+          )}
           <button 
             className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
               activeTab === 'chat' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
@@ -227,6 +305,38 @@ export default function SummaryPanel({ summaries, sessionId, papers }) {
           >
             <MessageSquare size={16} /> Research Chat
           </button>
+          <button 
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'graph' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('graph')}
+          >
+            <GitMerge size={16} /> Relationship Map
+          </button>
+          <button 
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'contradictions' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('contradictions')}
+          >
+            <Scale size={16} /> Contradiction Engine
+          </button>
+          <button 
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'audio' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('audio')}
+          >
+            <Headphones size={16} /> Audio Briefing
+          </button>
+          <button 
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'synthesis' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('synthesis')}
+          >
+            <Sparkles size={16} /> Paper Synthesizer
+          </button>
         </div>
       )}
 
@@ -234,11 +344,46 @@ export default function SummaryPanel({ summaries, sessionId, papers }) {
         {activeTab === 'individual' && hasIndividual && (
           <IndividualSummaries summaries={summaries.individual_summaries} />
         )}
-        {activeTab === 'synthesis' && hasSynthesis && (
-          <SynthesisPanel synthesis={summaries.synthesis} />
+        {activeTab === 'synthesis' && (
+          <SynthesisDashboard 
+            paper={synthesizedPaper} 
+            pdfBase64={pdfBase64}
+            loading={loadingSynthesis} 
+            onGenerate={handleGenerateSynthesis} 
+          />
         )}
         {activeTab === 'chat' && (
-          <PaperChatbot sessionId={sessionId} papers={papers} />
+          <PaperChatbot 
+            sessionId={sessionId} 
+            papers={papers} 
+            interviewPaper={interviewPaper}
+            onExitInterview={() => setInterviewPaper(null)}
+          />
+        )}
+        {activeTab === 'graph' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-primary mb-2 flex items-center gap-2">
+                <GitMerge size={18} className="text-accent" />
+                Neural Relationship Mapping
+              </h3>
+              <p className="text-xs text-secondary font-medium leading-relaxed">
+                Explore connections between discovered papers based on shared authors, 
+                keywords, and thematic similarity. <strong>Click a node to interview its lead author.</strong>
+              </p>
+            </div>
+            <NeuralRelationshipGraph papers={papers} onNodeClick={handleNodeClick} sessionId={sessionId} />
+          </div>
+        )}
+        {activeTab === 'contradictions' && (
+          <ContradictionPanel contradictions={contradictionData} loading={loadingContradictions} />
+        )}
+        {activeTab === 'audio' && (
+          <AudioPlayer 
+            briefing={audioBriefing} 
+            loading={loadingAudio} 
+            onGenerate={handleGenerateAudio} 
+          />
         )}
       </motion.div>
     </div>

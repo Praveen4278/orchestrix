@@ -1,128 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  History, RefreshCw, Trash2, ExternalLink, 
+  Calendar, Database, Hash, Search, 
+  LayoutGrid, Layers, Clock, AlertCircle,
+  FileText, ArrowRight
+} from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { fetchSessions, fetchSession, deleteSession } from '../utils/api';
-
-const s = {
-  page: {
-    padding: '2rem 2.5rem',
-    maxWidth: '900px',
-    margin: '0 auto',
-    width: '100%',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '2rem',
-  },
-  title: {
-    fontFamily: 'var(--mono)',
-    fontSize: '1.4rem',
-    fontWeight: 700,
-    color: 'var(--text)',
-  },
-  refreshBtn: {
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: '7px',
-    padding: '7px 14px',
-    color: 'var(--text3)',
-    fontFamily: 'var(--mono)',
-    fontSize: '0.68rem',
-    cursor: 'pointer',
-    letterSpacing: '0.06em',
-    transition: 'all 0.15s',
-  },
-  sessionCard: {
-    background: 'var(--bg2)',
-    border: '1px solid var(--border)',
-    borderRadius: '10px',
-    padding: '1rem 1.25rem',
-    marginBottom: '0.6rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    cursor: 'pointer',
-    transition: 'border-color 0.15s',
-  },
-  sessionIcon: {
-    width: '36px', height: '36px',
-    background: 'var(--bg3)',
-    border: '1px solid var(--border2)',
-    borderRadius: '8px',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '1rem',
-    flexShrink: 0,
-  },
-  sessionInfo: { flex: 1, overflow: 'hidden' },
-  sessionQuery: {
-    fontFamily: 'var(--sans)',
-    fontSize: '0.88rem',
-    fontWeight: 600,
-    color: 'var(--text)',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    marginBottom: '3px',
-  },
-  sessionMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.6rem',
-    flexWrap: 'wrap',
-  },
-  metaBadge: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.6rem',
-    color: 'var(--text3)',
-  },
-  sessionActions: {
-    display: 'flex',
-    gap: '0.4rem',
-    flexShrink: 0,
-  },
-  actionBtn: (danger) => ({
-    background: 'transparent',
-    border: `1px solid ${danger ? 'rgba(255,68,102,0.3)' : 'var(--border)'}`,
-    borderRadius: '6px',
-    padding: '5px 10px',
-    color: danger ? 'var(--red)' : 'var(--text3)',
-    fontFamily: 'var(--mono)',
-    fontSize: '0.6rem',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    letterSpacing: '0.04em',
-  }),
-  emptyState: {
-    textAlign: 'center',
-    padding: '4rem 2rem',
-    color: 'var(--text3)',
-  },
-  emptyIcon: { fontSize: '3rem', marginBottom: '1rem' },
-  emptyText: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.85rem',
-    color: 'var(--text2)',
-    marginBottom: '0.5rem',
-  },
-  emptySubtext: {
-    fontSize: '0.78rem',
-    color: 'var(--text3)',
-  },
-  loadingText: {
-    fontFamily: 'var(--mono)',
-    fontSize: '0.78rem',
-    color: 'var(--text3)',
-    textAlign: 'center',
-    padding: '2rem',
-  },
-};
 
 function formatDate(iso) {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   } catch { return iso; }
 }
 
@@ -162,7 +59,7 @@ export default function SessionHistory() {
 
   const handleDelete = async (e, sessionId) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this session?')) return;
+    if (!window.confirm('Delete this research session permanently?')) return;
     setDeleting(sessionId);
     try {
       await deleteSession(sessionId);
@@ -173,69 +70,155 @@ export default function SessionHistory() {
     setDeleting(null);
   };
 
-  if (loading) return <div style={s.page}><div style={s.loadingText}>Loading sessions…</div></div>;
-
   return (
-    <div style={s.page}>
-      <div style={s.header}>
-        <div style={s.title}>Session History</div>
-        <button style={s.refreshBtn} onClick={loadSessions}>↺ Refresh</button>
+    <div className="max-w-5xl mx-auto px-8 py-12">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-12">
+        <div>
+          <h1 className="text-3xl font-black text-primary flex items-center gap-3 tracking-tight">
+            <History className="text-accent" size={32} />
+            Research History
+          </h1>
+          <p className="text-slate-500 text-sm mt-2 font-medium">
+            Access and manage your previous research intelligence sessions.
+          </p>
+        </div>
+        
+        <button 
+          onClick={loadSessions}
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:text-primary hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
+      {/* Error State */}
       {error && (
-        <div style={{ background: 'rgba(255,68,102,0.08)', border: '1px solid rgba(255,68,102,0.25)', borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--red)', fontFamily: 'var(--mono)', fontSize: '0.75rem', marginBottom: '1rem' }}>
-          ⚠ {error} — MongoDB may not be running.
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-6 bg-red-50 border border-red-100 rounded-3xl flex items-start gap-4"
+        >
+          <AlertCircle className="text-red-500 shrink-0" size={24} />
+          <div>
+            <h3 className="text-sm font-bold text-red-900 mb-1">Connection Error</h3>
+            <p className="text-xs text-red-700 leading-relaxed">
+              {error}. Please ensure MongoDB is running to persist your research sessions permanently.
+            </p>
+          </div>
+        </motion.div>
       )}
 
-      {sessions.length === 0 && !error ? (
-        <div style={s.emptyState}>
-          <div style={s.emptyIcon}>🗂️</div>
-          <div style={s.emptyText}>No sessions yet</div>
-          <div style={s.emptySubtext}>Your research sessions will appear here after running queries.</div>
-        </div>
-      ) : (
-        sessions.map(session => (
-          <div
-            key={session.session_id}
-            style={s.sessionCard}
-            onClick={() => openSession(session.session_id)}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <div style={s.sessionIcon}>🔬</div>
-            <div style={s.sessionInfo}>
-              <div style={s.sessionQuery}>{session.query}</div>
-              <div style={s.sessionMeta}>
-                <span style={s.metaBadge}>
-                  {session.execution_mode === 'multi' ? '🌐' : '🖥️'} {session.execution_mode}
-                </span>
-                <span style={s.metaBadge}>·</span>
-                <span style={s.metaBadge}>{formatDate(session.created_at)}</span>
-                <span style={s.metaBadge}>·</span>
-                <span style={{ ...s.metaBadge, fontFamily: 'var(--mono)', fontSize: '0.58rem', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '3px', padding: '1px 5px', color: 'var(--accent)', letterSpacing: '0.05em' }}>
-                  {session.session_id.slice(0, 8)}
-                </span>
-              </div>
-            </div>
-            <div style={s.sessionActions}>
-              <button
-                style={s.actionBtn(false)}
-                onClick={e => { e.stopPropagation(); openSession(session.session_id); }}
-              >
-                Open
-              </button>
-              <button
-                style={s.actionBtn(true)}
-                onClick={e => handleDelete(e, session.session_id)}
-                disabled={deleting === session.session_id}
-              >
-                {deleting === session.session_id ? '…' : 'Delete'}
-              </button>
-            </div>
+      {/* Content */}
+      <div className="relative">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="mb-4"
+            >
+              <RefreshCw size={40} />
+            </motion.div>
+            <p className="text-sm font-bold tracking-widest uppercase opacity-50">Loading Intelligence...</p>
           </div>
-        ))
-      )}
+        ) : sessions.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-32 bg-slate-50 border border-dashed border-slate-200 rounded-[3rem]"
+          >
+            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
+              <Database size={32} className="text-slate-300" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No sessions yet</h3>
+            <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">
+              Your research sessions will appear here automatically after running queries in the discovery lab.
+            </p>
+            <button 
+              onClick={() => navigate('/')}
+              className="mt-8 px-8 py-3 bg-primary text-white rounded-2xl text-xs font-bold hover:scale-105 transition-all shadow-xl shadow-primary/10 flex items-center gap-2 mx-auto"
+            >
+              Start New Discovery <ArrowRight size={14} />
+            </button>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            <AnimatePresence mode='popLayout'>
+              {sessions.map((session, idx) => (
+                <motion.div
+                  key={session.session_id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="group relative bg-white border border-slate-200 p-6 rounded-[2rem] hover:border-accent hover:shadow-2xl hover:shadow-accent/5 transition-all cursor-pointer overflow-hidden"
+                  onClick={() => openSession(session.session_id)}
+                >
+                  {/* Decorative Background Icon */}
+                  <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                    <FileText size={120} />
+                  </div>
+
+                  <div className="flex flex-col md:flex-row md:items-center gap-6 relative z-10">
+                    {/* Icon */}
+                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors border border-slate-100">
+                      <Search size={24} className="text-slate-400 group-hover:text-accent transition-colors" />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-primary mb-2 truncate group-hover:text-accent transition-colors">
+                        {session.query}
+                      </h3>
+                      
+                      <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <LayoutGrid size={12} />
+                          {session.execution_mode} mode
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-l border-slate-200 pl-4">
+                          <Calendar size={12} />
+                          {formatDate(session.created_at)}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-accent uppercase tracking-widest border-l border-slate-200 pl-4 bg-accent/5 px-2 py-0.5 rounded-md">
+                          <Hash size={10} />
+                          {session.session_id.slice(0, 8)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openSession(session.session_id); }}
+                        className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
+                        title="Open Research"
+                      >
+                        <ExternalLink size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, session.session_id)}
+                        disabled={deleting === session.session_id}
+                        className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm disabled:opacity-50"
+                        title="Delete Session"
+                      >
+                        {deleting === session.session_id ? (
+                          <RefreshCw size={18} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

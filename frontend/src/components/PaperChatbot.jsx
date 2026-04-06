@@ -13,12 +13,14 @@ import {
   ChevronDown,
   Play,
   Pause,
-  Settings2
+  Settings2,
+  Mic2,
+  BookOpenCheck
 } from 'lucide-react';
 import { chatWithPapers } from '../utils/api';
 import TypingEffect from './TypingEffect';
 
-export default function PaperChatbot({ sessionId, papers }) {
+export default function PaperChatbot({ sessionId, papers, interviewPaper = null, onExitInterview }) {
   const [messages, setMessages] = useState([]);
   const [input, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,19 @@ export default function PaperChatbot({ sessionId, papers }) {
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Clear messages when switching to interview mode
+  useEffect(() => {
+    if (interviewPaper) {
+      setMessages([{
+        role: 'assistant',
+        content: `Hello! I am the lead author of "${interviewPaper.title}". I'm here to answer any specific questions you have about our study, methodology, or findings. How can I help you today?`,
+        timestamp: new Date().toISOString()
+      }]);
+    } else {
+      setMessages([]);
+    }
+  }, [interviewPaper]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,7 +75,8 @@ export default function PaperChatbot({ sessionId, papers }) {
         session_id: sessionId,
         query: q,
         history: messages,
-        attachments: userMsg.attachments
+        attachments: userMsg.attachments,
+        interview_paper_id: interviewPaper?.id // Pass target paper for persona mode
       };
 
       const response = await chatWithPapers(payload);
@@ -99,19 +115,31 @@ export default function PaperChatbot({ sessionId, papers }) {
       {/* Header */}
       <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-accent bg-opacity-10 flex items-center justify-center text-accent">
-            <Bot size={22} />
+          <div className={`w-10 h-10 rounded-2xl bg-accent bg-opacity-10 flex items-center justify-center text-accent`}>
+            {interviewPaper ? <Mic2 size={22} /> : <Bot size={22} />}
           </div>
           <div>
-            <h3 className="font-bold text-primary text-sm">Research Assistant</h3>
+            <h3 className="font-bold text-primary text-sm">
+              {interviewPaper ? 'Author Interview' : 'Research Assistant'}
+            </h3>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">llama3.2 Active</span>
+              <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
+                {interviewPaper ? 'Persona Mode' : 'llama3.2 Active'}
+              </span>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
+          {interviewPaper && (
+            <button 
+              onClick={onExitInterview}
+              className="px-3 py-1.5 text-[10px] font-bold text-accent hover:bg-accent/5 transition-all bg-white rounded-xl border border-accent/20 flex items-center gap-1.5"
+            >
+              <X size={12} /> Exit Interview
+            </button>
+          )}
           <button 
             onClick={() => setIsPaused(!isPaused)}
             className="p-2 text-slate-400 hover:text-accent transition-colors bg-white rounded-lg border border-slate-200"
