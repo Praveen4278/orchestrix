@@ -44,6 +44,23 @@ Context:
 {context}
 """
 
+INTERVIEW_PROMPT = """You are the lead author of the research paper: "{title}".
+Your goal is to answer questions about YOUR study as if you were the researcher who conducted it.
+
+Strict Rules:
+1. Speak in the first person (e.g., "In our study, we found...", "We chose this methodology because...").
+2. Answer ONLY based on the content of your paper.
+3. Be professional, confident, and academic.
+4. If asked about something not in your study, say "Our current study did not specifically investigate that aspect."
+5. Maintain the specific tone and methodology of your research.
+
+Paper Details:
+Title: {title}
+Authors: {authors}
+Year: {year}
+Abstract: {abstract}
+"""
+
 async def get_ollama_response(prompt: str, system: str, history: List[ChatMessage], attachments: Optional[List[Dict[str, Any]]] = None) -> str:
     url = f"{OLLAMA_BASE_URL}/api/chat"
     
@@ -82,17 +99,31 @@ async def get_ollama_response(prompt: str, system: str, history: List[ChatMessag
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    # 1. Build context from papers
-    context_parts = []
-    sources = []
-    for p in request.papers:
-        context_parts.append(f"Title: {p.title}\nAuthors: {', '.join(p.authors)}\nYear: {p.year}\nAbstract: {p.abstract}")
-        sources.append({"id": p.id, "title": p.title, "url": p.url})
-    
-    full_context = "\n\n---\n\n".join(context_parts)
+    # 1. Handle "Interview a Paper" mode vs general Research Assistant mode
+    if request.interview_paper_id:
+        target_paper = next((p for p in request.papers if p.id == request.interview_paper_id), None)
+        if not target_paper:
+            raise HTTPException(status_code=404, detail="Target paper for interview not found")
+        
+        system = INTERVIEW_PROMPT.format(
+            title=target_paper.title,
+            authors=", ".join(target_paper.authors),
+            year=target_paper.year,
+            abstract=target_paper.abstract
+        )
+        sources = [{"id": target_paper.id, "title": target_paper.title, "url": target_paper.url}]
+    else:
+        # Build general context from all papers
+        context_parts = []
+        sources = []
+        for p in request.papers:
+            context_parts.append(f"Title: {p.title}\nAuthors: {', '.join(p.authors)}\nYear: {p.year}\nAbstract: {p.abstract}")
+            sources.append({"id": p.id, "title": p.title, "url": p.url})
+        
+        full_context = "\n\n---\n\n".join(context_parts)
+        system = SYSTEM_PROMPT.format(context=full_context)
     
     # 2. Get AI response
-    system = SYSTEM_PROMPT.format(context=full_context)
     answer = await get_ollama_response(request.query, system, request.history, request.attachments)
     
     # 3. Update history

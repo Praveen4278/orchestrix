@@ -6,6 +6,7 @@ import AnalysisDashboard from '../components/AnalysisDashboard';
 import PapersList from '../components/PapersList';
 import SummaryPanel from '../components/SummaryPanel';
 import CitationsPanel from '../components/CitationsPanel';
+import AgentConflictPanel from '../components/AgentConflictPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, FileText, BarChart2, BrainCircuit, Bookmark, Plus, Network } from 'lucide-react';
 
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'analysis', label: 'Analysis', icon: BarChart2 },
   { id: 'summary', label: 'Summary', icon: BrainCircuit },
   { id: 'citations', label: 'Citations', icon: Bookmark },
+  { id: 'conflicts', label: 'Agent Conflicts', icon: Search },
 ];
 
 export default function ResultsPage() {
@@ -70,13 +72,14 @@ export default function ResultsPage() {
     );
   }
 
-  const { query, papers = [], analysis, summaries, citations, trace = [], execution_mode, total_duration_ms } = session;
+  const { query, papers = [], analysis, summaries, citations, trace = [], execution_mode, total_duration_ms, agent_conflicts = [] } = session;
 
   const tabCounts = {
     papers: papers.length,
     analysis: analysis ? 'Done' : '—',
     summary: summaries?.individual_summaries?.length || (summaries ? 'Done' : '—'),
     citations: citations?.citations?.length || '—',
+    conflicts: agent_conflicts?.length || 0,
   };
 
   return (
@@ -165,6 +168,7 @@ export default function ResultsPage() {
               />
             )}
             {activeTab === 'citations' && <CitationsPanel citations={citations} />}
+            {activeTab === 'conflicts' && <AgentConflictPanel conflicts={agent_conflicts} />}
           </motion.div>
         </AnimatePresence>
       </div>

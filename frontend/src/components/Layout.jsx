@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
-import { Search, BarChart2, History, RotateCcw, Activity } from 'lucide-react';
+import { Search, BarChart2, History, RotateCcw, Activity, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Search', icon: Search },
   { path: '/results', label: 'Results', icon: BarChart2 },
   { path: '/sessions', label: 'History', icon: History },
+  { path: '/digests', label: 'Digest', icon: Bell },
 ];
 
 export default function Layout({ children }) {

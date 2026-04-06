@@ -149,6 +149,7 @@ class OrchestratorResponse(BaseModel):
     trace: List[AgentTrace]
     execution_mode: str
     total_duration_ms: float
+    agent_conflicts: List[Dict[str, Any]] = []  # conflicts between Analysis and Summary agents
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 
@@ -178,8 +179,106 @@ class ChatRequest(BaseModel):
     history: List[ChatMessage] = []
     papers: List[Paper] = []
     attachments: Optional[List[Dict[str, Any]]] = None
+    interview_paper_id: Optional[str] = None # New field for persona mode
 
 class ChatResponse(BaseModel):
     answer: str
     sources: List[Dict[str, str]] = [] # paper_id -> title/link
     history: List[ChatMessage]
+
+
+# ─── Contradiction Engine Models ────────────────────────────────
+class PaperClaim(BaseModel):
+    paper_id: str
+    title: str
+    claim: str
+    variable: str
+    outcome: str
+    methodology: Optional[str] = None
+
+class Conflict(BaseModel):
+    topic: str
+    paper_1: Dict[str, str]  # id, title, claim
+    paper_2: Dict[str, str]  # id, title, claim
+    reason: str
+    confidence: float
+
+class ContradictionResponse(BaseModel):
+    conflicts: List[Conflict]
+    conflict_score: int
+    total_papers_analyzed: int
+
+
+# ─── Audio Briefing Models ──────────────────────────────────────
+class AudioBriefingRequest(BaseModel):
+    papers: List[Paper]
+    query: str
+
+
+class AudioBriefingResponse(BaseModel):
+    script: str
+    audio_base64: str  # Base64 encoded MP3
+    duration_seconds: float
+    total_papers: int
+
+
+# ─── Paper Synthesis Models ─────────────────────────────────────
+class SynthesisSection(BaseModel):
+    title: str
+    content: str
+    key_points: List[str] = []
+
+class SynthesizedPaper(BaseModel):
+    title: str
+    authors: List[str] = ["Orchestrix AI Synthesizer"]
+    abstract: str
+    introduction: str
+    literature_review: str
+    methodology: str
+    results: str
+    discussion: str
+    conclusion: str
+    references: List[str]
+    session_id: str
+    paper_id: str = Field(default_factory=lambda: "synthesized_" + datetime.utcnow().strftime("%Y%m%d%H%M%S"))
+
+class SynthesisRequest(BaseModel):
+    papers: List[Paper]
+    session_id: str
+    query: str
+    style: str = "scholarly" # scholarly, simplified, executive
+
+class SynthesisResponse(BaseModel):
+    paper: SynthesizedPaper
+    pdf_base64: Optional[str] = None
+
+
+# ─── Agent Conflict Resolution Models ─────────────────────────────
+class AgentConflict(BaseModel):
+    type: str                  # "topic_disagreement" | "trend_mismatch" | "gap_vs_emerging"
+    severity: str              # "low" | "medium" | "high"
+    analysis_claim: str        # what the Analysis agent said
+    summary_claim: str         # what the Summary agent said
+    topic: str                 # the topic in dispute
+    resolution_hint: str       # suggested interpretation for the user
+
+
+# ─── Scheduled Digest Models ───────────────────────────────────
+class DigestSchedule(BaseModel):
+    id: str = Field(default_factory=lambda: "digest_" + datetime.utcnow().strftime("%Y%m%d%H%M%S%f"))
+    query: str
+    frequency: str              # "daily" | "weekly"
+    max_results: int = 10
+    last_run: Optional[str] = None
+    last_paper_ids: List[str] = []
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    active: bool = True
+
+
+class DigestResult(BaseModel):
+    digest_id: str
+    query: str
+    new_papers: List[Paper]
+    total_new: int
+    run_at: str
+

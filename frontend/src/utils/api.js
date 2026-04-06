@@ -92,3 +92,24 @@ export const fetchSynthesis = async (papers, query, sessionId) => {
   const response = await api.post('/synthesize', { papers, query, session_id: sessionId });
   return response.data;
 };
+
+// ── Digests ───────────────────────────────────────────────────
+export const fetchDigests = async () => {
+  const response = await api.get('/digests');
+  return response.data.digests || [];
+};
+
+export const createDigest = async (payload) => {
+  const response = await api.post('/digests', payload);
+  return response.data;
+};
+
+export const deleteDigest = async (id) => {
+  const response = await api.delete(`/digests/${id}`);
+  return response.data;
+};
+
+export const runDigest = async (id) => {
+  const response = await api.post(`/digests/${id}/run`);
+  return response.data;
+};

@@ -6,6 +6,7 @@ import SearchPage from './pages/SearchPage';
 import PipelinePage from './pages/PipelinePage';
 import ResultsPage from './pages/ResultsPage';
 import SessionHistory from './pages/SessionHistory';
+import DigestPage from './pages/DigestPage';
 import Layout from './components/Layout';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/sessions" element={<SessionHistory />} />
+          <Route path="/digests" element={<DigestPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

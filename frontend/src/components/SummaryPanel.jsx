@@ -331,9 +331,9 @@ export default function SummaryPanel({ summaries, sessionId, papers }) {
           </button>
           <button 
             className={`flex items-center gap-2 px-5 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === 'synthesis' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
+              activeTab === 'synthesis_paper' ? 'bg-white text-accent shadow-sm' : 'text-slate-500 hover:text-primary'
             }`}
-            onClick={() => setActiveTab('synthesis')}
+            onClick={() => setActiveTab('synthesis_paper')}
           >
             <Sparkles size={16} /> Paper Synthesizer
           </button>
@@ -344,7 +344,10 @@ export default function SummaryPanel({ summaries, sessionId, papers }) {
         {activeTab === 'individual' && hasIndividual && (
           <IndividualSummaries summaries={summaries.individual_summaries} />
         )}
-        {activeTab === 'synthesis' && (
+        {activeTab === 'synthesis' && hasSynthesis && (
+          <SynthesisPanel synthesis={summaries.synthesis} />
+        )}
+        {activeTab === 'synthesis_paper' && (
           <SynthesisDashboard 
             paper={synthesizedPaper} 
             pdfBase64={pdfBase64}

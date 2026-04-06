@@ -18,7 +18,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from shared.models import (
     Paper, AnalysisRequest, AnalysisResponse,
     YearTrend, AuthorStats, KeywordFreq,
+    ContradictionResponse
 )
+from agents.analysis.contradiction_engine import ContradictionEngine
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
@@ -207,6 +209,26 @@ async def analyze(request: AnalysisRequest):
             "min": min(valid_years) if valid_years else 0,
             "max": max(valid_years) if valid_years else 0,
         },
+    )
+
+@app.post("/contradictions", response_model=ContradictionResponse)
+async def analyze_contradictions(request: AnalysisRequest):
+    """Detect and explain contradictions across papers."""
+    engine = ContradictionEngine()
+    
+    # 1. Extract claims
+    claims = await engine.extract_claims(request.papers)
+    
+    # 2. Detect conflicts
+    conflicts = await engine.detect_conflicts(claims)
+    
+    # 3. Calculate score
+    score = engine.calculate_conflict_score(conflicts, len(request.papers))
+    
+    return ContradictionResponse(
+        conflicts=conflicts,
+        conflict_score=score,
+        total_papers_analyzed=len(request.papers)
     )
 
 

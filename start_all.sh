@@ -30,9 +30,13 @@ if [ ! -d "$BACKEND_DIR/venv" ]; then
 fi
 source "$BACKEND_DIR/venv/bin/activate"
 
+# Ensure we are using the correct Python version inside venv
+export PATH="$BACKEND_DIR/venv/bin:$PATH"
+
 # Install dependencies
 echo "📦 Installing Python dependencies..."
 cd "$BACKEND_DIR"
+python3 -m pip install --upgrade pip -q
 python3 -m pip install -r requirements.txt -q
 
 echo ""
@@ -67,6 +71,12 @@ echo "         PID: $!"
 echo "  [8005] Chat Agent..."
 cd "$BACKEND_DIR/agents/chat"
 PYTHONPATH="$BACKEND_DIR" python3 -m uvicorn main:app --host 0.0.0.0 --port 8005 > "$LOG_DIR/chat.log" 2>&1 &
+echo "         PID: $!"
+
+# Synthesis Agent (port 8006)
+echo "  [8006] Synthesis Agent..."
+cd "$BACKEND_DIR/agents/synthesis"
+PYTHONPATH="$BACKEND_DIR" python3 -m uvicorn main:app --host 0.0.0.0 --port 8006 > "$LOG_DIR/synthesis.log" 2>&1 &
 echo "         PID: $!"
 
 # Wait for agents to start

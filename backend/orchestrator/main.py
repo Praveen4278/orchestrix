@@ -22,8 +22,12 @@ from shared.models import (
     QueryRequest, OrchestratorResponse, AgentTrace,
     DiscoveryRequest, AnalysisRequest, SummaryRequest, CitationRequest,
     Paper, AnalysisResponse, SummaryResponse, CitationResponse,
-    Session, ChatRequest, ChatResponse
+    Session, ChatRequest, ChatResponse, ContradictionResponse,
+    AudioBriefingRequest, AudioBriefingResponse,
+    SynthesisRequest, SynthesisResponse,
+    AgentConflict, DigestSchedule, DigestResult
 )
+from orchestrator.graph_logic import generate_graph_data, summarize_cluster
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))
 
@@ -73,6 +77,78 @@ DEFAULT_SINGLE_URLS = {
 
 # In-memory session store (fallback for when MongoDB is unavailable)
 SESSION_CACHE: Dict[str, dict] = {}
+
+# In-memory digest store (persisted to MongoDB when available)
+DIGEST_STORE: Dict[str, dict] = {}
+
+
+def detect_agent_conflicts(
+    analysis: AnalysisResponse,
+    summaries: SummaryResponse
+) -> List[AgentConflict]:
+    """
+    Compare Analysis and Summary agent outputs for contradictions.
+    Surfaces disagreements to the user instead of silently picking one.
+    """
+    conflicts = []
+    if not analysis or not summaries or not summaries.synthesis:
+        return conflicts
+
+    emerging = {t.lower() for t in (analysis.emerging_topics or [])}
+    themes   = {t.lower() for t in (summaries.synthesis.common_themes or [])}
+    gaps     = {g.lower() for g in (summaries.synthesis.research_gaps or [])}
+    trends   = {t.lower() for t in (summaries.synthesis.future_trends or [])}
+    top_kw   = {k.keyword.lower() for k in (analysis.keyword_frequency or [])[:10]}
+
+    # Conflict 1: Analysis says topic is EMERGING, Summary says it's a COMMON THEME (already established)
+    for topic in emerging:
+        for theme in themes:
+            if any(word in theme for word in topic.split() if len(word) > 4):
+                conflicts.append(AgentConflict(
+                    type="topic_disagreement",
+                    severity="medium",
+                    topic=topic,
+                    analysis_claim=f"Analysis agent flagged '{topic}' as an emerging topic growing in recent papers.",
+                    summary_claim=f"Summary agent identified '{theme}' as a common established theme across papers.",
+                    resolution_hint="The topic may be transitioning from emerging to mainstream. Consider it a rapidly maturing area."
+                ))
+
+    # Conflict 2: Analysis says topic is EMERGING, Summary says it's a RESEARCH GAP (not yet addressed)
+    for topic in emerging:
+        for gap in gaps:
+            if any(word in gap for word in topic.split() if len(word) > 4):
+                conflicts.append(AgentConflict(
+                    type="gap_vs_emerging",
+                    severity="high",
+                    topic=topic,
+                    analysis_claim=f"Analysis agent detected '{topic}' as an emerging topic with growing paper count.",
+                    summary_claim=f"Summary agent identified '{gap}' as an unaddressed research gap.",
+                    resolution_hint="Papers mention this topic but may not solve it — the area is active but solutions are still lacking."
+                ))
+
+    # Conflict 3: High-frequency keyword in Analysis not mentioned in Summary trends or themes
+    for kw in top_kw:
+        in_summary = any(
+            kw in t for t in list(themes) + list(trends) + list(gaps)
+        )
+        if not in_summary and len(kw) > 5:
+            conflicts.append(AgentConflict(
+                type="trend_mismatch",
+                severity="low",
+                topic=kw,
+                analysis_claim=f"Analysis agent found '{kw}' as a high-frequency keyword across the paper set.",
+                summary_claim=f"Summary agent did not mention '{kw}' in themes, trends, or gaps.",
+                resolution_hint="The term appears frequently in paper text but may not represent a conceptual theme. Could be methodological jargon."
+            ))
+
+    # Deduplicate by topic
+    seen, unique = set(), []
+    for c in conflicts:
+        if c.topic not in seen:
+            seen.add(c.topic)
+            unique.append(c)
+
+    return unique[:8]  # cap at 8 conflicts
 
 
 def get_agent_urls(request: QueryRequest) -> Dict[str, str]:
@@ -431,6 +507,9 @@ async def run_query(request: QueryRequest):
 
     # ── Step 1: Discovery (always sequential) ──────────────────
     trace.append(AgentTrace(agent="discovery", status="running"))
+    
+    # Check if we should use stream or standard discover
+    # Standard discover is used here for the non-streaming /query endpoint
     papers = await call_discovery(urls["discovery"], request.query, request.max_results, trace)
     # Remove last "running" trace entry (replaced by completed/failed)
     trace = [t for t in trace if not (t.agent == "discovery" and t.status == "running")]
@@ -485,6 +564,15 @@ async def run_query(request: QueryRequest):
 
     total_ms = round((time.time() - t_global) * 1000, 1)
 
+    # ── Detect agent conflicts ─────────────────────────────────
+    agent_conflicts = detect_agent_conflicts(analysis, summaries)
+    if agent_conflicts:
+        print(f"[Orchestrator] {len(agent_conflicts)} agent conflict(s) detected")
+        trace.append(AgentTrace(
+            agent="orchestrator",
+            status=f"{len(agent_conflicts)} agent conflict(s) detected",
+        ))
+
     # ── Build response ─────────────────────────────────────────
     response = OrchestratorResponse(
         session_id=session_id,
@@ -496,6 +584,7 @@ async def run_query(request: QueryRequest):
         trace=trace,
         execution_mode=request.execution_mode,
         total_duration_ms=total_ms,
+        agent_conflicts=[c.model_dump() for c in agent_conflicts],
     )
 
     # ── Persist to MongoDB ─────────────────────────────────────
@@ -509,6 +598,7 @@ async def run_query(request: QueryRequest):
         "trace": [t.model_dump() for t in trace],
         "execution_mode": request.execution_mode,
         "total_duration_ms": total_ms,
+        "agent_conflicts": [c.model_dump() for c in agent_conflicts],
         "created_at": datetime.utcnow().isoformat(),
     }
     await save_session(session_doc)
@@ -545,11 +635,26 @@ async def chat_with_papers(request: ChatRequest):
 
 @app.get("/sessions")
 async def list_sessions(limit: int = 20):
-    if db is None:
-        return {"sessions": [], "message": "MongoDB not available"}
-    cursor = db.sessions.find({}, {"_id": 0, "session_id": 1, "query": 1, "created_at": 1, "execution_mode": 1})
-    cursor.sort("created_at", -1).limit(limit)
-    sessions = await cursor.to_list(length=limit)
+    """
+    Returns a list of recent sessions from MongoDB with a fallback to SESSION_CACHE.
+    """
+    sessions = []
+    
+    # 1. Try to get from MongoDB
+    if db is not None:
+        try:
+            cursor = db.sessions.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
+            sessions = await cursor.to_list(length=limit)
+        except Exception as e:
+            print(f"[Orchestrator] MongoDB query error: {e}")
+
+    # 2. If DB is empty or unavailable, merge with SESSION_CACHE
+    if not sessions:
+        # Convert cache dict to list and sort by created_at
+        sessions = list(SESSION_CACHE.values())
+        sessions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        sessions = sessions[:limit]
+    
     return {"sessions": sessions}
 
 
@@ -593,6 +698,208 @@ async def get_notes(session_id: str):
     cursor = db.notes.find({"session_id": session_id}, {"_id": 0})
     notes = await cursor.to_list(length=100)
     return {"notes": notes}
+
+
+# ─── Graph & Cluster Endpoints ──────────────────────────────
+@app.post("/graph")
+async def get_graph(papers: List[Paper], similarity_threshold: float = 0.25):
+    """
+    Computes semantic similarity clusters and bridge papers.
+    """
+    try:
+        graph_data = generate_graph_data(papers, similarity_threshold)
+        return graph_data
+    except Exception as e:
+        print(f"[Orchestrator] Graph generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/cluster-summary")
+async def get_cluster_summary(cluster_id: int, papers: List[Dict[str, Any]], session_id: Optional[str] = None):
+    """
+    Summarizes a specific cluster of research papers and persists it to the session.
+    """
+    try:
+        summary = summarize_cluster(cluster_id, papers)
+        
+        # Persist cluster summary to DB if session_id is provided
+        if session_id and db is not None:
+            await db.sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {f"cluster_summaries.{cluster_id}": summary}},
+                upsert=True
+            )
+            
+        return summary
+    except Exception as e:
+        print(f"[Orchestrator] Cluster summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/contradictions", response_model=ContradictionResponse)
+async def get_contradictions(papers: List[Paper], session_id: Optional[str] = None):
+    """
+    Proxy to Analysis Agent's contradiction engine and persists results.
+    """
+    # Resolve URL
+    urls = get_agent_urls(QueryRequest(query="", max_results=0))
+    analysis_url = urls.get("analysis", "http://127.0.0.1:8002")
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{analysis_url}/contradictions",
+                json=AnalysisRequest(papers=papers).model_dump()
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Persist contradictions to DB if session_id is provided
+            if session_id and db is not None:
+                await db.sessions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"contradictions": data}},
+                    upsert=True
+                )
+                
+            return ContradictionResponse(**data)
+    except Exception as e:
+        print(f"[Orchestrator] Contradiction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/audio-briefing", response_model=AudioBriefingResponse)
+async def get_audio_briefing(request: AudioBriefingRequest, session_id: Optional[str] = None):
+    """
+    Proxy to Summary Agent's audio briefing engine and persists results.
+    """
+    urls = get_agent_urls(QueryRequest(query=request.query, max_results=0))
+    summary_url = urls.get("summary", "http://127.0.0.1:8003")
+
+    try:
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            resp = await client.post(
+                f"{summary_url}/audio-briefing",
+                json=request.model_dump()
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Persist audio briefing to DB if session_id is provided
+            if session_id and db is not None:
+                # We store the script and metadata, maybe not the full base64 if it's too large, 
+                # but for now let's keep it for full persistence.
+                await db.sessions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"audio_briefing": data}},
+                    upsert=True
+                )
+                
+            return AudioBriefingResponse(**data)
+    except Exception as e:
+        print(f"[Orchestrator] Audio briefing error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/synthesize", response_model=SynthesisResponse)
+async def get_synthesis(request: SynthesisRequest):
+    """
+    Proxy to Synthesis Agent and persists the generated paper.
+    """
+    # Resolve URL (assuming default if not explicitly in config)
+    urls = get_agent_urls(QueryRequest(query=request.query, max_results=0))
+    synthesis_url = urls.get("synthesis", "http://127.0.0.1:8006")
+
+    try:
+        async with httpx.AsyncClient(timeout=300.0) as client: # Long timeout for paper gen
+            resp = await client.post(
+                f"{synthesis_url}/synthesize",
+                json=request.model_dump()
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Persist synthesized paper to DB
+            if db is not None:
+                await db.sessions.update_one(
+                    {"session_id": request.session_id},
+                    {"$push": {"synthesized_papers": data["paper"]}},
+                    upsert=True
+                )
+                
+            return SynthesisResponse(**data)
+    except Exception as e:
+        print(f"[Orchestrator] Synthesis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Scheduled Digest Endpoints ─────────────────────────────────────────────
+@app.post("/digests", response_model=DigestSchedule)
+async def create_digest(schedule: DigestSchedule):
+    """Create a new scheduled research digest."""
+    doc = schedule.model_dump()
+    DIGEST_STORE[schedule.id] = doc
+    if db is not None:
+        await db.digests.insert_one({**doc, "_id": schedule.id})
+    return schedule
+
+
+@app.get("/digests")
+async def list_digests():
+    """List all scheduled digests."""
+    if db is not None:
+        try:
+            cursor = db.digests.find({}, {"_id": 0})
+            items = await cursor.to_list(length=100)
+            if items:
+                return {"digests": items}
+        except Exception:
+            pass
+    return {"digests": list(DIGEST_STORE.values())}
+
+
+@app.delete("/digests/{digest_id}")
+async def delete_digest(digest_id: str):
+    DIGEST_STORE.pop(digest_id, None)
+    if db is not None:
+        await db.digests.delete_one({"id": digest_id})
+    return {"deleted": True}
+
+
+@app.post("/digests/{digest_id}/run", response_model=DigestResult)
+async def run_digest(digest_id: str):
+    """Manually trigger a digest run — fetches papers and returns only new ones."""
+    doc = DIGEST_STORE.get(digest_id)
+    if not doc and db is not None:
+        doc = await db.digests.find_one({"id": digest_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Digest not found")
+
+    query = doc["query"]
+    max_results = doc.get("max_results", 10)
+    last_ids = set(doc.get("last_paper_ids", []))
+
+    # Fetch fresh papers via discovery agent
+    discovery_url = DEFAULT_SINGLE_URLS["discovery"]
+    trace: List[AgentTrace] = []
+    papers = await call_discovery(discovery_url, query, max_results * 2, trace)
+    papers = papers or []
+
+    # Filter to only papers not seen in last run
+    new_papers = [p for p in papers if p.id not in last_ids]
+
+    run_at = datetime.utcnow().isoformat()
+    new_ids = [p.id for p in papers]
+
+    # Update last_run and last_paper_ids
+    update = {"last_run": run_at, "last_paper_ids": new_ids}
+    DIGEST_STORE[digest_id] = {**doc, **update}
+    if db is not None:
+        await db.digests.update_one({"id": digest_id}, {"$set": update}, upsert=True)
+
+    return DigestResult(
+        digest_id=digest_id,
+        query=query,
+        new_papers=new_papers[:max_results],
+        total_new=len(new_papers),
+        run_at=run_at,
+    )
 
 
 # ─── Health Check ─────────────────────────────────────────────

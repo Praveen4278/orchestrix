@@ -20,7 +20,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from shared.models import (
     Paper, SummaryRequest, SummaryResponse,
     SinglePaperSummary, SynthesisResult,
+    AudioBriefingRequest, AudioBriefingResponse
 )
+from agents.summary.audio_engine import AudioBriefingEngine
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
@@ -293,6 +295,16 @@ async def summarize(request: SummaryRequest):
         synthesis=synthesis,
     )
 
+@app.post("/audio-briefing", response_model=AudioBriefingResponse)
+async def generate_audio_briefing(request: AudioBriefingRequest):
+    """Generate an AI-narrated executive briefing."""
+    engine = AudioBriefingEngine()
+    try:
+        response = await engine.generate_briefing(request.query, request.papers)
+        return response
+    except Exception as e:
+        print(f"[Summary] Audio briefing error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
