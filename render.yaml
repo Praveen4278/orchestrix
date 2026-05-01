@@ -1,3 +1,4 @@
+# Orchestrix Render Blueprint
 services:
 
   # ── 1. Orchestrator (port 8000) ────────────────────────────
