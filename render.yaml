@@ -1,0 +1,139 @@
+services:
+
+  # ── 1. Orchestrator (port 8000) ────────────────────────────
+  - type: web
+    name: orchestrix-orchestrator
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn orchestrator.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DB_NAME
+        value: orchestrix
+      - key: SEMANTIC_SCHOLAR_API_KEY
+        sync: false
+      - key: DISCOVERY_AGENT_URL
+        value: https://orchestrix-discovery.onrender.com
+      - key: ANALYSIS_AGENT_URL
+        value: https://orchestrix-analysis.onrender.com
+      - key: SUMMARY_AGENT_URL
+        value: https://orchestrix-summary.onrender.com
+      - key: CITATION_AGENT_URL
+        value: https://orchestrix-citation.onrender.com
+      - key: CHAT_AGENT_URL
+        value: https://orchestrix-chat.onrender.com
+      - key: SYNTHESIS_AGENT_URL
+        value: https://orchestrix-synthesis.onrender.com
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 2. Discovery Agent ──────────────────────────────────────
+  - type: web
+    name: orchestrix-discovery
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.discovery.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SEMANTIC_SCHOLAR_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 3. Analysis Agent ───────────────────────────────────────
+  - type: web
+    name: orchestrix-analysis
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.analysis.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 4. Summary Agent ────────────────────────────────────────
+  - type: web
+    name: orchestrix-summary
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.summary.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 5. Citation Agent ───────────────────────────────────────
+  - type: web
+    name: orchestrix-citation
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.citation.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 6. Chat Agent ───────────────────────────────────────────
+  - type: web
+    name: orchestrix-chat
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.chat.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+  # ── 7. Synthesis Agent ──────────────────────────────────────
+  - type: web
+    name: orchestrix-synthesis
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=. uvicorn agents.synthesis.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: PYTHON_VERSION
+        value: "3.11.0"

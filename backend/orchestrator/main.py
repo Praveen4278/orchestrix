@@ -73,6 +73,7 @@ DEFAULT_SINGLE_URLS = {
     "summary": os.getenv("SUMMARY_AGENT_URL", "http://127.0.0.1:8003"),
     "citation": os.getenv("CITATION_AGENT_URL", "http://127.0.0.1:8004"),
     "chat": os.getenv("CHAT_AGENT_URL", "http://127.0.0.1:8005"),
+    "synthesis": os.getenv("SYNTHESIS_AGENT_URL", "http://127.0.0.1:8006"),
 }
 
 # In-memory session store (fallback for when MongoDB is unavailable)

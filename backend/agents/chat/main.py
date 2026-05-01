@@ -29,119 +29,144 @@ app.add_middleware(
 )
 
 # LLM Configuration
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-SYSTEM_PROMPT = """You are a specialized Research Assistant. Your goal is to help users understand research papers.
-Strict Rules:
+if LLM_PROVIDER == "groq":
+    from openai import AsyncOpenAI as _OAI
+    _groq_client = _OAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+else:
+    _groq_client = None
+
+SYSTEM_PROMPT = """You are a specialized Research Assistant. Your goal is to help users understand research papers. 
+Strict Rules: 
 1. ONLY answer based on the provided paper context. 
-2. If the answer isn't in the papers, say "I don't have enough information from the research papers to answer that."
-3. ALWAYS provide citations like [Paper Title] when referencing specific findings.
-4. If the user attaches an image/file, try to incorporate its context if it relates to the research.
-5. Be professional, academic, and concise.
+2. If the answer isn't in the papers, say "I don't have enough information from the research papers to answer that." 
+3. ALWAYS provide citations like [Paper Title] when referencing specific findings. 
+4. If the user attaches an image/file, try to incorporate its context if it relates to the research. 
+5. Be professional, academic, and concise. 
 
-Context:
-{context}
+Context: 
+{context} 
 """
 
-INTERVIEW_PROMPT = """You are the lead author of the research paper: "{title}".
-Your goal is to answer questions about YOUR study as if you were the researcher who conducted it.
+INTERVIEW_PROMPT = """You are the lead author of the research paper: "{title}". 
+Your goal is to answer questions about YOUR study as if you were the researcher who conducted it. 
 
-Strict Rules:
-1. Speak in the first person (e.g., "In our study, we found...", "We chose this methodology because...").
-2. Answer ONLY based on the content of your paper.
-3. Be professional, confident, and academic.
-4. If asked about something not in your study, say "Our current study did not specifically investigate that aspect."
-5. Maintain the specific tone and methodology of your research.
+Strict Rules: 
+1. Speak in the first person (e.g., "In our study, we found...", "We chose this methodology because..."). 
+2. Answer ONLY based on the content of your paper. 
+3. Be professional, confident, and academic. 
+4. If asked about something not in your study, say "Our current study did not specifically investigate that aspect." 
+5. Maintain the specific tone and methodology of your research. 
 
-Paper Details:
-Title: {title}
-Authors: {authors}
-Year: {year}
-Abstract: {abstract}
+Paper Details: 
+Title: {title} 
+Authors: {authors} 
+Year: {year} 
+Abstract: {abstract} 
 """
 
-async def get_ollama_response(prompt: str, system: str, history: List[ChatMessage], attachments: Optional[List[Dict[str, Any]]] = None) -> str:
-    url = f"{OLLAMA_BASE_URL}/api/chat"
+async def get_groq_response(prompt: str, system: str, history: List[ChatMessage]) -> str: 
+    messages = [{"role": "system", "content": system}] 
+    for msg in history[-5:]: 
+        messages.append({"role": msg.role, "content": msg.content}) 
+    messages.append({"role": "user", "content": prompt}) 
+    try: 
+        resp = await _groq_client.chat.completions.create( 
+            model=GROQ_MODEL, messages=messages, temperature=0.2, max_tokens=800, 
+        ) 
+        return resp.choices[0].message.content 
+    except Exception as e: 
+        return f"Error from Groq: {str(e)}" 
+
+async def get_ollama_response(prompt: str, system: str, history: List[ChatMessage], attachments: Optional[List[Dict[str, Any]]] = None) -> str: 
+    url = f"{OLLAMA_BASE_URL}/api/chat" 
     
-    messages = [{"role": "system", "content": system}]
+    messages = [{"role": "system", "content": system}] 
     
-    # Add history
-    for msg in history[-5:]: # Keep last 5 messages for context
-        messages.append({"role": msg.role, "content": msg.content})
+    # Add history 
+    for msg in history[-5:]: # Keep last 5 messages for context 
+        messages.append({"role": msg.role, "content": msg.content}) 
     
-    # Add current user message with attachments if any
-    user_content = prompt
-    if attachments:
-        # Simplistic attachment handling for text-based models
-        # In a full vision implementation, we'd send base64 to a vision-capable model
-        attachment_desc = "\n\n[Attached Files/Images Metadata]: " + ", ".join([a.get('name', 'file') for a in attachments])
-        user_content += attachment_desc
+    # Add current user message with attachments if any 
+    user_content = prompt 
+    if attachments: 
+        # Simplistic attachment handling for text-based models 
+        # In a full vision implementation, we'd send base64 to a vision-capable model 
+        attachment_desc = "\n\n[Attached Files/Images Metadata]: " + ", ".join([a.get('name', 'file') for a in attachments]) 
+        user_content += attachment_desc 
         
-    messages.append({"role": "user", "content": user_content})
+    messages.append({"role": "user", "content": user_content}) 
 
-    payload = {
-        "model": OLLAMA_MODEL,
-        "messages": messages,
-        "stream": False,
-        "options": {"temperature": 0.2}
-    }
+    payload = { 
+        "model": OLLAMA_MODEL, 
+        "messages": messages, 
+        "stream": False, 
+        "options": {"temperature": 0.2} 
+    } 
 
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["message"]["content"]
-    except Exception as e:
-        print(f"[Chat] Ollama error: {e}")
-        return f"Error connecting to Ollama: {str(e)}"
+    try: 
+        async with httpx.AsyncClient(timeout=120.0) as client: 
+            resp = await client.post(url, json=payload) 
+            resp.raise_for_status() 
+            data = resp.json() 
+            return data["message"]["content"] 
+    except Exception as e: 
+        print(f"[Chat] Ollama error: {e}") 
+        return f"Error connecting to Ollama: {str(e)}" 
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    # 1. Handle "Interview a Paper" mode vs general Research Assistant mode
-    if request.interview_paper_id:
-        target_paper = next((p for p in request.papers if p.id == request.interview_paper_id), None)
-        if not target_paper:
-            raise HTTPException(status_code=404, detail="Target paper for interview not found")
+@app.post("/chat", response_model=ChatResponse) 
+async def chat(request: ChatRequest): 
+    # 1. Handle "Interview a Paper" mode vs general Research Assistant mode 
+    if request.interview_paper_id: 
+        target_paper = next((p for p in request.papers if p.id == request.interview_paper_id), None) 
+        if not target_paper: 
+            raise HTTPException(status_code=404, detail="Target paper for interview not found") 
         
-        system = INTERVIEW_PROMPT.format(
-            title=target_paper.title,
-            authors=", ".join(target_paper.authors),
-            year=target_paper.year,
-            abstract=target_paper.abstract
-        )
-        sources = [{"id": target_paper.id, "title": target_paper.title, "url": target_paper.url}]
-    else:
-        # Build general context from all papers
-        context_parts = []
-        sources = []
-        for p in request.papers:
-            context_parts.append(f"Title: {p.title}\nAuthors: {', '.join(p.authors)}\nYear: {p.year}\nAbstract: {p.abstract}")
-            sources.append({"id": p.id, "title": p.title, "url": p.url})
+        system = INTERVIEW_PROMPT.format( 
+            title=target_paper.title, 
+            authors=", ".join(target_paper.authors), 
+            year=target_paper.year, 
+            abstract=target_paper.abstract 
+        ) 
+        sources = [{"id": target_paper.id, "title": target_paper.title, "url": target_paper.url}] 
+    else: 
+        # Build general context from all papers 
+        context_parts = [] 
+        sources = [] 
+        for p in request.papers: 
+            context_parts.append(f"Title: {p.title}\nAuthors: {', '.join(p.authors)}\nYear: {p.year}\nAbstract: {p.abstract}") 
+            sources.append({"id": p.id, "title": p.title, "url": p.url}) 
         
-        full_context = "\n\n---\n\n".join(context_parts)
-        system = SYSTEM_PROMPT.format(context=full_context)
+        full_context = "\n\n---\n\n".join(context_parts) 
+        system = SYSTEM_PROMPT.format(context=full_context) 
     
-    # 2. Get AI response
-    answer = await get_ollama_response(request.query, system, request.history, request.attachments)
+    # 2. Get AI response 
+    if LLM_PROVIDER == "groq" and _groq_client: 
+        answer = await get_groq_response(request.query, system, request.history) 
+    else: 
+        answer = await get_ollama_response(request.query, system, request.history, request.attachments) 
     
-    # 3. Update history
-    new_history = request.history + [
-        ChatMessage(role="user", content=request.query, attachments=request.attachments),
-        ChatMessage(role="assistant", content=answer)
-    ]
+    # 3. Update history 
+    new_history = request.history + [ 
+        ChatMessage(role="user", content=request.query, attachments=request.attachments), 
+        ChatMessage(role="assistant", content=answer) 
+    ] 
     
-    return ChatResponse(
-        answer=answer,
-        sources=sources,
-        history=new_history
-    )
+    return ChatResponse( 
+        answer=answer, 
+        sources=sources, 
+        history=new_history 
+    ) 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "agent": "chat", "port": 8005}
+@app.get("/health") 
+async def health(): 
+    return {"status": "ok", "agent": "chat", "port": 8005} 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8005, reload=False)
+if __name__ == "__main__": 
+    import uvicorn 
+    uvicorn.run(app, host="0.0.0.0", port=8005, reload=False) 

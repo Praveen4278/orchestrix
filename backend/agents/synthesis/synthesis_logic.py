@@ -12,7 +12,7 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
 
 class SynthesisEngine:
     def __init__(self):
-        self.llm_provider = os.getenv("LLM_PROVIDER", "ollama")
+        self.llm_provider = os.getenv("LLM_PROVIDER", "groq")
         self.openai_key = os.getenv("OPENAI_API_KEY")
 
     async def synthesize(self, request: SynthesisRequest) -> SynthesisResponse:
